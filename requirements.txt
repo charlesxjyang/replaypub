@@ -1,0 +1,35 @@
+# Backstack Dependencies
+
+# Database
+supabase>=2.0.0
+
+# Email
+resend>=0.7.0
+
+# Scraping & HTML processing
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+lxml>=5.0.0
+readability-lxml>=0.8.1      # Mozilla Readability algorithm
+bleach>=6.1.0                # HTML sanitization
+cssutils>=2.9.0              # CSS parsing for inlining
+
+# Email templating
+premailer>=3.10.0            # CSS inlining for email
+mjml>=0.1.0                  # MJML to HTML (optional, can use CLI)
+
+# Utilities
+python-dotenv>=1.0.0
+click>=8.1.0                 # CLI framework
+httpx>=0.26.0                # Async HTTP client
+tenacity>=8.2.0              # Retry logic
+
+# Image handling
+Pillow>=10.0.0               # Image processing
+boto3>=1.34.0                # For Cloudflare R2 (S3-compatible)
+
+# Development
+pytest>=7.4.0
+pytest-asyncio>=0.23.0
+black>=24.0.0
+ruff>=0.1.0
