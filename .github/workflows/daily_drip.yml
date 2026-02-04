@@ -1,0 +1,36 @@
+name: Daily Drip Emails
+
+on:
+  schedule:
+    - cron: '0 8 * * *'  # 8am UTC daily
+  workflow_dispatch: {}
+
+jobs:
+  send-emails:
+    runs-on: ubuntu-latest
+
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      FROM_EMAIL: ${{ vars.FROM_EMAIL }}
+      REPLY_TO_EMAIL: ${{ vars.REPLY_TO_EMAIL }}
+      APP_URL: ${{ vars.APP_URL }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Check due subscriptions
+        run: python backstack.py check -v
+
+      - name: Send drip emails
+        run: python backstack.py send -v

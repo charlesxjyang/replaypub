@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Backstack CLI - manage your drip email service.
+Replay CLI - manage your drip email service.
 
 Usage:
     python backstack.py scrape https://samzdat.com -o posts.json
@@ -22,7 +22,7 @@ load_dotenv()
 @click.group()
 @click.version_option(version='0.1.0')
 def cli():
-    """Backstack - Great blogs, delivered over time."""
+    """Replay - Great blogs, delivered over time."""
     pass
 
 
@@ -51,6 +51,37 @@ def scrape(url, output, verbose):
         json.dump(data, f, indent=2)
     
     click.echo(f"Saved {len(posts)} posts to {output}")
+
+
+@cli.command('scrape-illich')
+@click.argument('book_url')
+@click.option('--output', '-o', default='illich_posts.json', help='Output file')
+@click.option('--verbose', '-v', is_flag=True)
+def scrape_illich(book_url, output, verbose):
+    """Extract chapters from an Illich book on henryzoo.com.
+
+    Example:
+        python backstack.py scrape-illich https://henryzoo.com/illich/celebration-of-awareness/
+    """
+    from scraper.extract import IllichExtractor
+    import json
+
+    click.echo(f"Extracting chapters from {book_url}...")
+
+    extractor = IllichExtractor(book_url, verbose=verbose)
+    posts = extractor.extract()
+
+    if not posts:
+        click.echo("No chapters found!")
+        sys.exit(1)
+
+    # Save with post_index
+    data = [p.to_dict() | {'post_index': i} for i, p in enumerate(posts, 1)]
+
+    with open(output, 'w') as f:
+        json.dump(data, f, indent=2)
+
+    click.echo(f"Saved {len(posts)} chapters to {output}")
 
 
 @cli.command()
@@ -164,6 +195,7 @@ def upload(posts_file, slug, name, url, author, author_email, dry_run):
             'post_index': post['post_index'],
             'word_count': post.get('word_count'),
             'reading_time_minutes': post.get('reading_time_minutes'),
+            'tags': post.get('tags', []),
         }
         
         supabase.table('posts').upsert(post_data, on_conflict='blog_id,post_index').execute()
@@ -222,9 +254,9 @@ def send(dry_run, limit, verbose):
     # Import send logic
     from drip.send import render_email, send_email, mark_sent
     
-    app_url = os.environ.get('APP_URL', 'https://backstack.io')
-    from_email = os.environ.get('FROM_EMAIL', 'posts@backstack.io')
-    reply_to = os.environ.get('REPLY_TO_EMAIL', 'hello@backstack.io')
+    app_url = os.environ.get('APP_URL', 'https://replay.pub')
+    from_email = os.environ.get('FROM_EMAIL', 'posts@replay.pub')
+    reply_to = os.environ.get('REPLY_TO_EMAIL', 'hello@replay.pub')
     
     sent = 0
     for item in due:
