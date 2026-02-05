@@ -1016,3 +1016,129 @@ class GwernExtractor:
         except Exception as e:
             self._log(f"Failed to extract {url}: {e}")
             return None
+
+
+class CuratedExtractor:
+    """Extract articles from a curated list of URLs.
+
+    Each entry in the input list should have 'title' and 'url' keys,
+    and optionally 'author' for tagging.
+    """
+
+    HEADERS = {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    }
+
+    def __init__(self, links: List[dict], verbose: bool = False):
+        """
+        Initialize with a list of link objects.
+
+        Args:
+            links: List of dicts with 'title', 'url', and optional 'author'
+            verbose: Print progress
+        """
+        self.links = links
+        self.verbose = verbose
+        self.client = httpx.Client(
+            headers=self.HEADERS,
+            follow_redirects=True,
+            timeout=30.0,
+        )
+
+    def _log(self, msg: str):
+        if self.verbose:
+            print(f"  [curated] {msg}")
+
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        retry=retry_if_exception_type((httpx.HTTPStatusError, httpx.ConnectError, httpx.ReadTimeout)),
+    )
+    def _fetch(self, url: str) -> httpx.Response:
+        resp = self.client.get(url)
+        resp.raise_for_status()
+        return resp
+
+    def _safe_fetch(self, url: str) -> Optional[httpx.Response]:
+        try:
+            return self._fetch(url)
+        except Exception as e:
+            self._log(f"Failed to fetch {url}: {e}")
+            return None
+
+    def extract(self) -> List[ExtractedPost]:
+        """Extract content from all URLs in the curated list."""
+        import time
+
+        posts = []
+        for i, link in enumerate(self.links):
+            url = link['url']
+            title = link['title']
+            author = link.get('author')
+
+            self._log(f"Fetching {i+1}/{len(self.links)}: {title}")
+
+            resp = self._safe_fetch(url)
+            if not resp:
+                continue
+
+            post = self._extract_article(url, resp.text, title, author)
+            if post:
+                posts.append(post)
+            else:
+                self._log(f"  Failed to extract content")
+
+            time.sleep(0.5)  # Be polite
+
+        self._log(f"Extracted {len(posts)} of {len(self.links)} articles")
+        return posts
+
+    def _extract_article(self, url: str, html: str, fallback_title: str, author: Optional[str]) -> Optional[ExtractedPost]:
+        """Extract article content using readability."""
+        try:
+            soup = BeautifulSoup(html, 'lxml')
+
+            # Try to get a better title from the page
+            title = fallback_title
+            h1 = soup.find('h1')
+            if h1:
+                h1_text = h1.get_text(strip=True)
+                if h1_text and len(h1_text) < 200:
+                    title = h1_text
+
+            # Extract date
+            published_at = None
+            for prop in ('article:published_time', 'datePublished', 'date', 'dc.date'):
+                meta = soup.find('meta', attrs={'property': prop}) or soup.find('meta', attrs={'name': prop})
+                if meta and meta.get('content'):
+                    published_at = _parse_date(meta['content'])
+                    if published_at:
+                        break
+
+            # Extract content using readability
+            doc = Document(html, url=url)
+            content_html = doc.summary()
+
+            if not content_html or len(content_html) < 100:
+                return None
+
+            # Generate slug
+            slug = _slugify(title)
+
+            # Tag with author if provided
+            tags = []
+            if author:
+                tags.append(_slugify(author))
+
+            return ExtractedPost(
+                title=title,
+                url=url,
+                content_html=content_html,
+                slug=slug,
+                published_at=published_at,
+                tags=tags,
+            )
+        except Exception as e:
+            self._log(f"Failed to extract {url}: {e}")
+            return None

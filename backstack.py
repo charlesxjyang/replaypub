@@ -115,6 +115,42 @@ def scrape_gwern(output, verbose):
     click.echo(f"Saved {len(posts)} essays to {output}")
 
 
+@cli.command('scrape-curated')
+@click.argument('links_file')
+@click.option('--output', '-o', default='curated_raw.json', help='Output file')
+@click.option('--verbose', '-v', is_flag=True)
+def scrape_curated(links_file, output, verbose):
+    """Extract articles from a curated list of URLs.
+
+    LINKS_FILE should be a JSON array of objects with 'title', 'url', and optional 'author'.
+
+    Example:
+        python backstack.py scrape-curated joanne_peng_links.json -o joanne_raw.json -v
+        python backstack.py clean joanne_raw.json -b https://example.com -o joanne_clean.json
+    """
+    from scraper.extract import CuratedExtractor
+    import json
+
+    with open(links_file) as f:
+        links = json.load(f)
+
+    click.echo(f"Extracting {len(links)} articles from curated list...")
+
+    extractor = CuratedExtractor(links, verbose=verbose)
+    posts = extractor.extract()
+
+    if not posts:
+        click.echo("No articles extracted!")
+        sys.exit(1)
+
+    data = [p.to_dict() | {'post_index': i} for i, p in enumerate(posts, 1)]
+
+    with open(output, 'w') as f:
+        json.dump(data, f, indent=2)
+
+    click.echo(f"Saved {len(posts)} articles to {output}")
+
+
 @cli.command()
 @click.argument('input_file')
 @click.option('--output', '-o', help='Output file (default: input_cleaned.json)')
