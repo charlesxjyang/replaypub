@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import type { Feed, Post } from '@/lib/types'
 import SignUpForm from './sign-up-form'
+import { AWAITING_PERMISSION_AUTHORS } from '@/components/FeedCard'
 
 export const dynamic = 'force-dynamic'
 
@@ -117,7 +118,17 @@ export default async function FeedDetail({
 
       {/* Sign up */}
       <div className="mb-12">
-        <SignUpForm feedId={typedFeed.id} blogId={blog.id} feedName={typedFeed.name} />
+        {blog.author && AWAITING_PERMISSION_AUTHORS.includes(blog.author) ? (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 text-center">
+            <p className="text-amber-800 font-medium mb-1">Awaiting author permission</p>
+            <p className="text-amber-700 text-sm">
+              We&apos;re working on getting permission from the author to distribute this content.
+              Check back soon!
+            </p>
+          </div>
+        ) : (
+          <SignUpForm feedId={typedFeed.id} blogId={blog.id} feedName={typedFeed.name} />
+        )}
       </div>
 
       {/* Post list */}
