@@ -18,6 +18,7 @@ def sample_item():
         'post_id': '660e8400-e29b-41d4-a716-446655440000',
         'post_title': 'My Test Post',
         'post_content_html': '<p>This is the post content.</p>',
+        'post_original_url': 'https://example.com/my-test-post',
         'post_index': 5,
         'total_posts': 20,
     }
@@ -53,6 +54,10 @@ class TestRenderEmail:
     def test_app_url(self, sample_item):
         html = render_email(sample_item, 'https://replay.pub')
         assert 'https://replay.pub' in html
+
+    def test_post_url_in_title_link(self, sample_item):
+        html = render_email(sample_item, 'https://replay.pub')
+        assert f'href="{sample_item["post_original_url"]}"' in html
 
 
 class TestSendEmail:

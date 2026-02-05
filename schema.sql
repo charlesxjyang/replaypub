@@ -132,12 +132,13 @@ RETURNS TABLE (
     post_id UUID,
     post_title TEXT,
     post_content_html TEXT,
+    post_original_url TEXT,
     post_index INTEGER,
     total_posts INTEGER
 ) AS $$
 BEGIN
     RETURN QUERY
-    SELECT 
+    SELECT
         s.id AS subscription_id,
         sub.email AS subscriber_email,
         sub.name AS subscriber_name,
@@ -146,12 +147,13 @@ BEGIN
         p.id AS post_id,
         p.title AS post_title,
         p.content_html AS post_content_html,
+        p.original_url AS post_original_url,
         s.current_post_index + 1 AS post_index,
         b.post_count AS total_posts
     FROM subscriptions s
     JOIN subscribers sub ON s.subscriber_id = sub.id
     JOIN blogs b ON s.blog_id = b.id
-    JOIN posts p ON p.blog_id = b.id 
+    JOIN posts p ON p.blog_id = b.id
         AND p.post_index = s.current_post_index + 1
     WHERE s.is_active = true
         AND s.is_completed = false
