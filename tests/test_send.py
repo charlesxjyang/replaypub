@@ -57,7 +57,8 @@ class TestRenderEmail:
 
     def test_post_url_in_title_link(self, sample_item):
         html = render_email(sample_item, 'https://replay.pub')
-        assert f'href="{sample_item["post_original_url"]}"' in html
+        expected_url = f'{sample_item["post_original_url"]}?utm_source=replay&utm_medium=email&utm_campaign=drip'
+        assert f'href="{expected_url}"' in html
 
 
 class TestSendEmail:

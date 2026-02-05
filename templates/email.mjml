@@ -30,7 +30,7 @@
     <mj-section padding="20px 0 0 0">
       <mj-column>
         <mj-text align="center" font-size="13px" color="#9ca3af">
-          {{blog_name}}
+          <a href="{{post_url_utm}}" style="color: #9ca3af; text-decoration: none;">{{blog_name}}</a>
         </mj-text>
       </mj-column>
     </mj-section>
@@ -40,7 +40,7 @@
       <mj-column>
         <!-- Title -->
         <mj-text font-size="28px" font-weight="bold" line-height="1.3" padding-bottom="8px">
-          {{post_title}}
+          <a href="{{post_url_utm}}" style="color: #1a1a1a; text-decoration: none;">{{post_title}}</a>
         </mj-text>
 
         <mj-divider border-color="#e5e7eb" border-width="1px" padding="16px 0" />

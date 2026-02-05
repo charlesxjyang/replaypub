@@ -29,8 +29,8 @@ def _get_template() -> str:
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>
 <body style="margin:0;padding:20px;background:#f9fafb;font-family:Georgia,serif;">
 <div style="max-width:600px;margin:0 auto;background:#fff;padding:40px 32px;border-radius:8px;">
-<p style="text-align:center;color:#9ca3af;font-size:13px;">{{blog_name}}</p>
-<h1 style="font-size:28px;line-height:1.3;"><a href="{{post_url}}" style="color:#1a1a1a;text-decoration:none;">{{post_title}}</a></h1>
+<p style="text-align:center;color:#9ca3af;font-size:13px;"><a href="{{post_url_utm}}" style="color:#9ca3af;text-decoration:none;">{{blog_name}}</a></p>
+<h1 style="font-size:28px;line-height:1.3;"><a href="{{post_url_utm}}" style="color:#1a1a1a;text-decoration:none;">{{post_title}}</a></h1>
 <hr style="border:none;border-top:1px solid #e5e7eb;">
 <div style="font-size:16px;line-height:1.7;">{{post_content}}</div>
 <hr style="border:none;border-top:1px solid #e5e7eb;">
@@ -69,10 +69,19 @@ def render_email(item: dict, app_url: str) -> str:
 
     unsubscribe_url = f"{app_url}/unsubscribe?sid={item['subscription_id']}"
 
+    # Build UTM-tagged URL for the original post
+    post_url = item.get('post_original_url', '')
+    if post_url:
+        separator = '&' if '?' in post_url else '?'
+        post_url_utm = f"{post_url}{separator}utm_source=replay&utm_medium=email&utm_campaign=drip"
+    else:
+        post_url_utm = ''
+
     replacements = {
         '{{blog_name}}': item.get('blog_name', ''),
         '{{post_title}}': item.get('post_title', ''),
-        '{{post_url}}': item.get('post_original_url', ''),
+        '{{post_url}}': post_url,
+        '{{post_url_utm}}': post_url_utm,
         '{{post_content}}': item.get('post_content_html', ''),
         '{{progress_text}}': f"Post {post_index} of {total_posts}",
         '{{progress_pct}}': str(progress_pct),
