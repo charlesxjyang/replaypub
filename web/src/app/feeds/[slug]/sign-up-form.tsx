@@ -202,7 +202,7 @@ export default function SignUpForm({
               Enjoying Replay?
             </p>
             <p className="text-amber-800 text-sm mb-3">
-              If you find it valuable, consider supporting the project.
+              If you find it valuable, consider supporting the project. 50% of proceeds go to the original author.
             </p>
             <a
               href={donateUrl}

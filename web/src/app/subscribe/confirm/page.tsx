@@ -179,7 +179,7 @@ function ConfirmContent() {
             Enjoying Replay?
           </p>
           <p className="text-amber-800 text-sm mb-4">
-            This project is free to use. If you find it valuable, consider buying me a coffee to help keep it running.
+            This project is free to use. If you find it valuable, consider supporting it. 50% of proceeds go to the original author.
           </p>
           <a
             href={donateUrl}
