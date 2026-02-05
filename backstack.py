@@ -84,6 +84,37 @@ def scrape_illich(book_url, output, verbose):
     click.echo(f"Saved {len(posts)} chapters to {output}")
 
 
+@cli.command('scrape-gwern')
+@click.option('--output', '-o', default='gwern_raw.json', help='Output file')
+@click.option('--verbose', '-v', is_flag=True)
+def scrape_gwern(output, verbose):
+    """Extract essays from gwern.net, tagged by index theme.
+
+    Example:
+        python backstack.py scrape-gwern -o gwern_raw.json -v
+        python backstack.py clean gwern_raw.json -b https://gwern.net -o gwern_clean.json
+        python backstack.py upload gwern_clean.json -s gwern -n "Gwern" -u https://gwern.net -a "Gwern Branwen"
+    """
+    from scraper.extract import GwernExtractor
+    import json
+
+    click.echo("Extracting essays from gwern.net...")
+
+    extractor = GwernExtractor(verbose=verbose)
+    posts = extractor.extract()
+
+    if not posts:
+        click.echo("No essays found!")
+        sys.exit(1)
+
+    data = [p.to_dict() | {'post_index': i} for i, p in enumerate(posts, 1)]
+
+    with open(output, 'w') as f:
+        json.dump(data, f, indent=2)
+
+    click.echo(f"Saved {len(posts)} essays to {output}")
+
+
 @cli.command()
 @click.argument('input_file')
 @click.option('--output', '-o', help='Output file (default: input_cleaned.json)')

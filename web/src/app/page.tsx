@@ -56,7 +56,20 @@ export default async function Home() {
   // Sort authors alphabetically
   const sortedAuthors = Object.keys(feedsByAuthor).sort()
 
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'Replay',
+    url: 'https://replay.pub',
+    description: 'Subscribe to classic blog archives and receive posts as a drip email series.',
+  }
+
   return (
+    <>
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+    />
     <div className="max-w-4xl mx-auto px-4 py-16">
       {/* Hero */}
       <section className="text-center mb-16">
@@ -100,5 +113,6 @@ export default async function Home() {
         </section>
       )}
     </div>
+    </>
   )
 }

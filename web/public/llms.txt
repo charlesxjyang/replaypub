@@ -1,0 +1,29 @@
+# Replay
+
+> Great blogs, delivered over time.
+
+Replay is a service that lets you subscribe to classic blog archives and receive posts as a drip email series. One post at a time, on your own schedule.
+
+## How it works
+
+1. Browse available feeds at https://replay.pub
+2. Pick a feed and enter your email to subscribe
+3. Receive one blog post per email, delivered on your chosen schedule
+4. Posts arrive in the original publication order, starting from the first
+
+## Available content
+
+Replay hosts curated feeds from well-known blog authors. Each feed represents a blog or a tagged subset of a blog. Feeds are listed on the homepage grouped by author.
+
+## Key pages
+
+- Homepage: https://replay.pub — browse all available feeds
+- Feed page: https://replay.pub/feeds/{slug} — view feed details and subscribe
+- Blog page: https://replay.pub/blogs/{slug} — view all posts from a blog
+- Request: https://replay.pub/request — request and vote for new blogs
+
+## Technical details
+
+- Emails contain the full blog post text, formatted for readability
+- Subscribers can pause, resume, or cancel at any time from their dashboard
+- Delivery frequency is configurable per subscription

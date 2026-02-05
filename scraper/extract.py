@@ -673,3 +673,346 @@ class IllichExtractor:
             published_at=published_at,
             tags=tags,
         )
+
+
+class GwernExtractor:
+    """Extract essays from gwern.net using the index page for theme-based tagging.
+
+    Each essay is tagged with the theme sections it appears under on gwern.net/index.
+    """
+
+    BASE_URL = "https://gwern.net"
+    HEADERS = {
+        'User-Agent': 'Replay/0.1 (blog archiver; +https://replay.pub)',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    }
+
+    # Theme → list of URL paths from gwern.net/index
+    # Excludes: Newest, Newest: Blog, Personal, Reviews, Reviews: Books
+    THEME_URLS = {
+        "Popular": [
+            "/scaling-hypothesis", "/death-note-anonymity", "/silk-road", "/dnm-archive",
+            "/spaced-repetition", "/complement", "/banner", "/face", "/subculture", "/improvement",
+        ],
+        "Notable": [
+            "/math-error", "/danbooru2021", "/dnm-archive", "/correlation", "/embryo-selection",
+            "/longevity", "/tool-ai", "/search", "/inclusionism", "/matt-levine",
+        ],
+        "Statistics": [
+            "/google-shutdown", "/2012-election", "/google-alerts", "/hpmor", "/ea-donation",
+            "/note/statistic", "/doc/statistics/bayes/regression-to-mean/index",
+            "/doc/science/fermi-problem/index", "/doc/math/humor/lion-hunting/index",
+            "/tla", "/shower-controls",
+        ],
+        "Meta-Science": [
+            "/causality", "/everything", "/research-criticism", "/replication", "/leprechaun",
+            "/littlewood-origin", "/mouse-utopia", "/hydrocephalus", "/question",
+            "/fake-journal-club",
+        ],
+        "Decision Theory": [
+            "/banner", "/mail-delivery", "/prediction-market", "/milk", "/traffic-lights",
+            "/candy-japan", "/ab-test", "/doc/philosophy/frank-ramsey/index",
+        ],
+        "Order Statistics": [
+            "/order-statistic", "/resorter",
+            "/doc/statistics/order/beanmachine-multistage/index.html", "/goodreads",
+            "/hunter", "/doc/statistics/order/selection/pipeline/index", "/selection",
+            "/best-student-ever", "/speedrunning",
+        ],
+        "Crypto/Bitcoin": [
+            "/bitcoin-is-worse-is-better", "/self-decrypting", "/timestamping", "/co2-coin",
+            "/doc/bitcoin/nashx/index", "/silk-road", "/dnm-archive", "/dnm-arrest",
+            "/dnm-survival",
+        ],
+        "AI Safety": [
+            "/scaling-hypothesis", "/backstop", "/tool-ai", "/complexity", "/fiction/clippy",
+            "/tank", "/hyperbolic-time-chamber",
+        ],
+        "Generative AI: Image": [
+            "/danbooru2021", "/crop", "/face", "/biggan", "/face-graveyard", "/dropcap",
+            "/twdne",
+        ],
+        "Generative AI: Fiction": [
+            "/gpt-3-nonfiction", "/creative-benchmark", "/cyoa", "/gpt-2-music",
+            "/gpt-2-preference-learning", "/rubiks-cube", "/non-biblical-sentences",
+            "/system-prompts-2025", "/claude-2",
+        ],
+        "Generative AI: Poetry": [
+            "/fiction/lab-animals", "/fiction/your-hands-and-mine", "/fiction/tilakkhana",
+            "/fiction/this-last-pain", "/fiction/this-last-pain-graveyard", "/fiction/christmas",
+            "/blog/2025/bell-crow-moon", "/gpt-3", "/gpt-2", "/rnn-metadata",
+        ],
+        "Deep Learning": [
+            "/coin-flip", "/doc/ai/scaling/index",
+            "/doc/ai/nn/transformer/attention/index",
+            "/doc/ai/nn/fully-connected/index", "/doc/ai/nn/sparsity/index",
+            "/doc/cs/end-to-end-principle/index", "/aunn", "/idea", "/oen", "/novelty-net",
+            "/free-play", "/ai-daydreaming",
+        ],
+        "Computer Science": [
+            "/turing-complete", "/archiving", "/gwtar", "/sort", "/wifi", "/3-grenades",
+            "/computers", "/note/faster", "/utext", "/unsort", "/rock-paper-scissors",
+        ],
+        "Haskell": [
+            "/haskell/summer-of-code", "/problem-14", "/haskell/archiving-github",
+            "/haskell/wikipedia-archive-bot", "/haskell/wikipedia-rss-archive-bot",
+            "/resilient-software", "/evolutionary-license", "/haskell/run-length-encoding",
+            "/choosing-software",
+        ],
+        "Cognition": [
+            "/spaced-repetition", "/dnb-faq", "/dnb-meta-analysis", "/iodine",
+            "/conscientiousness", "/smpy", "/creatine", "/difference",
+            "/doc/iq/high/anne-roe/index", "/doc/biology/portia/index",
+            "/anti-spaced-repetition", "/anchoring",
+        ],
+        "Psychology": [
+            "/sunk-cost", "/lithium", "/morning-writing", "/collecting", "/larping",
+            "/beauty", "/note/competence", "/maze",
+            "/doc/psychiatry/bipolar/elon-musk/index", "/rtx", "/book-writing",
+            "/matt-levine",
+        ],
+        "Behavior Genetics": [
+            "/embryo-selection", "/review/bakewell", "/clone", "/ies-history",
+            "/drug-heuristic", "/dune-genetics", "/mlp-genetics", "/amuse",
+            "/doc/genetics/heritable/emergenesis/index",
+            "/doc/statistics/variance-component/index", "/deer-evolution",
+        ],
+        "Economics": [
+            "/improvement", "/girl-scouts", "/console-insurance", "/greenland",
+            "/long-bets", "/doc/economics/copyright/index", "/note/local-optima",
+            "/doc/iq/ses/index", "/harberger", "/copyright",
+        ],
+        "Economics: Tech": [
+            "/complement", "/timing", "/review/arpa", "/forking-path",
+            "/slowing-moores-law", "/holy-war", "/startup-idea",
+            "/doc/economics/automation/index",
+        ],
+        "Domestic Cats": [
+            "/review/cat", "/catnip", "/catnip-survey", "/fuzz-testing", "/earwax",
+            "/cat-horror", "/catitecture", "/blog/2021/cat-tail",
+        ],
+        "Practical": [
+            "/search", "/socks", "/plastination", "/longevity",
+            "/doc/psychiatry/traumatic-brain-injury/index",
+            "/doc/longevity/johan-bjorksten/index", "/oldest-food",
+        ],
+        "Design": [
+            "/design", "/design-graveyard", "/traffic", "/lorem", "/style-guide",
+            "/invertornot", "/sidenote", "/red", "/poetry-html", "/font", "/subscript",
+            "/variable", "/twitter", "/web-color",
+        ],
+        "QS: Sleep": [
+            "/melatonin", "/modafinil", "/modafinil-survey", "/zeo/zeo", "/zeo/caffeine",
+            "/zeo/potassium", "/zeo/redshift", "/zeo/vitamin-d", "/zeo/zma",
+            "/wood-pillow", "/lunar",
+        ],
+        "QS": [
+            "/nootropic/nootropics", "/lsd-microdosing", "/water", "/2014-spirulina",
+            "/melon", "/lewis-meditation", "/weather", "/treadmill", "/bacopa", "/lllt",
+            "/acne",
+        ],
+        "Politics": [
+            "/subculture", "/terrorism-is-not-about-terror",
+            "/terrorism-is-not-effective", "/colder-war",
+            "/doc/sociology/technology/parasocial/index",
+            "/doc/sociology/small-groups/index", "/note/fashion",
+            "/doc/sociology/abandoned-footnotes/index",
+        ],
+        "Epistemology": [
+            "/math-error", "/unseeing", "/language", "/littlewood",
+            "/doc/sociology/survey/lizardman/index", "/internet-community-design",
+            "/modus", "/newton", "/simulation-inference",
+        ],
+        "Philosophy": [
+            "/culture-is-not-about-esthetics", "/video-game-art", "/retrocognition",
+            "/ontological-pantheism", "/on-disrespect", "/miletian",
+            "/narrowing-circle", "/abortion", "/immoral-book", "/justification",
+            "/doc/philosophy/ethics/ethicists/index", "/organ-donation-survey",
+        ],
+        "Literary Criticism": [
+            "/story-of-your-life", "/review/bakker", "/review/timecrimes",
+            "/review/mlp", "/suzanne-delage", "/scanners", "/screwfly", "/thrawn",
+        ],
+        "Anime": [
+            "/kyon", "/death-note-anonymity", "/death-note-ending",
+            "/death-note-script", "/hafu", "/aria", "/fmp-parody",
+            "/development-hell", "/ova", "/ugly-anime",
+            "/review/space-battleship-yamato",
+        ],
+        "Fiction: Prose": [
+            "/fiction/october", "/fiction/batman", "/second-life-sentence",
+            "/fiction/acre", "/fiction/missing-cities", "/fiction/erl-king",
+            "/fiction/men-of-iron", "/fiction/menard",
+            "/fiction/how-the-panther-got-black", "/fiction/palace",
+            "/fiction/dinosaur-comics", "/epigram",
+        ],
+        "Fiction: Verse": [
+            "/fiction/poem", "/fiction/brave-poem", "/fiction/dying-outside",
+            "/fiction/genshiken", "/fiction/safecracker", "/fiction/hybrid-rainbow",
+            "/fiction/mulberry", "/fiction/snowbank",
+        ],
+        "Docs": [
+            "/doc/index", "/doc/newest/index", "/fulltext",
+            "/doc/rotten.com/library/index.html", "/doc/psychology/okcupid/index",
+            "/doc/japan/art/2002-gibson",
+            "/doc/philosophy/2010-richardson-bythenumbers-vectors30",
+            "/doc/culture/2007-wolfe",
+            "/doc/culture/1983-wolfe-thecitadeloftheautarch-thejustman",
+        ],
+        "Docs: Science": [
+            "/doc/radiance/2002-scholz-radiance", "/doc/sociology/1987-rossi",
+            "/doc/science/1986-hamming", "/doc/existential-risk/1985-hofstadter",
+            "/doc/statistics/bayes/hope-function/1994-falk",
+            "/doc/genetics/selection/www.mountimprobable.com/index.html",
+            "/doc/culture/1963-asimov",
+            "/doc/biology/2000-iapac-norvir/description.html",
+        ],
+        "Docs: Crypto": [
+            "/doc/cs/cryptography/nash/1955-nash", "/doc/bitcoin/2008-nakamoto",
+            "/doc/bitcoin/2011-davis",
+            "/doc/darknet-market/silk-road/1/2013-power",
+            "/doc/bitcoin/2014-mccaleb",
+        ],
+        "Docs: Anime": [
+            "/doc/anime/eva/2003-oshii-izubuchi",
+            "/doc/anime/eva/2003-rahxephoncomplete-anno-izubuchi",
+            "/doc/anime/eva/little-boy/2004-okada",
+            "/doc/anime/eva/little-boy/2005-murakami",
+            "/doc/anime/eva/little-boy/2005-little-boy",
+            "/doc/anime/1997-utena",
+            "/doc/anime/eva/little-boy/2005-sawaragi",
+            "/doc/anime/2010-sarrazin",
+        ],
+        "Docs: NGE": [
+            "/otaku",
+            "/doc/anime/eva/notenki-memoirs/2002-takeda-notenkimemoirs",
+            "/doc/anime/eva/2010-crc",
+            "/doc/anime/eva/1996-animerica-conscience",
+            "/doc/anime/eva/2011-house",
+            "/doc/anime/eva/1996-newtype-anno-interview",
+            "/doc/anime/eva/1997-anno-english",
+        ],
+        "Wikipedia": [
+            "/inclusionism", "/wikipedia-and-knol", "/wikipedia-and-youtube",
+            "/wikipedia-and-dark-side-editing", "/wikipedia-and-other-wikis",
+            "/wikipedia-resume",
+        ],
+    }
+
+    def __init__(self, verbose: bool = False):
+        self.verbose = verbose
+        self.client = httpx.Client(
+            headers=self.HEADERS,
+            follow_redirects=True,
+            timeout=30.0,
+        )
+
+    def _log(self, msg: str):
+        if self.verbose:
+            print(f"  [gwern] {msg}")
+
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        retry=retry_if_exception_type((httpx.HTTPStatusError, httpx.ConnectError, httpx.ReadTimeout)),
+    )
+    def _fetch(self, url: str) -> httpx.Response:
+        resp = self.client.get(url)
+        resp.raise_for_status()
+        return resp
+
+    def _safe_fetch(self, url: str) -> Optional[httpx.Response]:
+        try:
+            return self._fetch(url)
+        except Exception as e:
+            self._log(f"Failed to fetch {url}: {e}")
+            return None
+
+    def extract(self) -> List[ExtractedPost]:
+        """Extract all essays, tagged by theme from the index."""
+        import time
+
+        # Build reverse mapping: URL path → list of themes
+        url_themes: dict = {}
+        for theme, paths in self.THEME_URLS.items():
+            for path in paths:
+                url_themes.setdefault(path, []).append(theme)
+
+        unique_paths = list(url_themes.keys())
+        self._log(f"{len(self.THEME_URLS)} themes, {len(unique_paths)} unique URLs")
+
+        posts = []
+        for i, path in enumerate(unique_paths):
+            url = f"{self.BASE_URL}{path}"
+            self._log(f"Fetching {i+1}/{len(unique_paths)}: {path}")
+
+            resp = self._safe_fetch(url)
+            if not resp:
+                continue
+
+            post = self._extract_essay(url, resp.text)
+            if post:
+                post.tags = url_themes[path]
+                posts.append(post)
+
+            time.sleep(0.5)  # Be polite
+
+        # Sort by date (oldest first), then URL
+        posts.sort(key=lambda p: (p.published_at or '9999', p.url))
+        self._log(f"Extracted {len(posts)} essays")
+        return posts
+
+    def _extract_essay(self, url: str, html: str) -> Optional[ExtractedPost]:
+        """Extract essay content from a gwern.net page."""
+        try:
+            soup = BeautifulSoup(html, 'lxml')
+
+            # Title: prefer #title or h1, fall back to <title>
+            title = None
+            title_el = soup.find(id='title') or soup.find('h1')
+            if title_el:
+                title = title_el.get_text(strip=True)
+            if not title:
+                title_tag = soup.find('title')
+                if title_tag:
+                    title = title_tag.get_text(strip=True).split('·')[0].strip()
+            if not title:
+                return None
+
+            # Date: gwern uses <meta name="dc.date.modified"> and similar
+            published_at = None
+            for attr_name in ('dc.date.modified', 'dcterms.modified', 'dc.date.created',
+                              'dcterms.created', 'date'):
+                meta = soup.find('meta', attrs={'name': attr_name})
+                if meta and meta.get('content'):
+                    published_at = _parse_date(meta['content'])
+                    if published_at:
+                        break
+
+            if not published_at:
+                # Try article:published_time
+                meta = soup.find('meta', attrs={'property': 'article:published_time'})
+                if meta and meta.get('content'):
+                    published_at = _parse_date(meta['content'])
+
+            # Content: use readability
+            doc = Document(html, url=url)
+            content_html = doc.summary()
+
+            if not content_html or len(content_html) < 100:
+                return None
+
+            # Slug from URL path
+            path = urlparse(url).path.strip('/')
+            slug = path.replace('/', '-') if path else _slugify(title)
+
+            return ExtractedPost(
+                title=title,
+                url=url,
+                content_html=content_html,
+                slug=slug,
+                published_at=published_at,
+            )
+        except Exception as e:
+            self._log(f"Failed to extract {url}: {e}")
+            return None

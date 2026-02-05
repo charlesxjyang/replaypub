@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import type { Feed, Post } from '@/lib/types'
@@ -5,24 +6,52 @@ import SignUpForm from './sign-up-form'
 
 export const dynamic = 'force-dynamic'
 
+async function getFeed(slug: string) {
+  const supabase = await createClient()
+  const { data: feed } = await supabase
+    .from('feeds')
+    .select('*, blogs(id, name, author, url, post_count)')
+    .eq('slug', slug)
+    .single()
+  return feed as Feed | null
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>
+}): Promise<Metadata> {
+  const { slug } = await params
+  const feed = await getFeed(slug)
+  if (!feed) return {}
+
+  const blog = feed.blogs!
+  const title = feed.name
+  const description = feed.description || `Subscribe to ${feed.name} by ${blog.author ?? 'unknown'} and receive posts as a drip email series.`
+
+  return {
+    title,
+    description,
+    openGraph: { title, description },
+    twitter: { title, description },
+    alternates: { canonical: `/feeds/${slug}` },
+  }
+}
+
 export default async function FeedDetail({
   params,
 }: {
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  const supabase = await createClient()
-
-  const { data: feed } = await supabase
-    .from('feeds')
-    .select('*, blogs(id, name, author, url, post_count)')
-    .eq('slug', slug)
-    .single()
+  const feed = await getFeed(slug)
 
   if (!feed) notFound()
 
-  const typedFeed = feed as Feed
+  const typedFeed = feed
   const blog = typedFeed.blogs!
+
+  const supabase = await createClient()
 
   // Fetch posts — filtered by tag if the feed has a tag_filter
   let query = supabase
@@ -40,7 +69,30 @@ export default async function FeedDetail({
   // Use feed's source_url if set, otherwise fall back to blog URL
   const sourceUrl = typedFeed.source_url || blog.url
 
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name: typedFeed.name,
+    description: typedFeed.description ?? undefined,
+    url: `https://replay.pub/feeds/${slug}`,
+    mainEntity: {
+      '@type': 'ItemList',
+      numberOfItems: (posts as Post[] ?? []).length,
+      itemListElement: (posts as Post[] ?? []).slice(0, 50).map((post, i) => ({
+        '@type': 'ListItem',
+        position: i + 1,
+        name: post.title,
+        url: post.original_url,
+      })),
+    },
+  }
+
   return (
+    <>
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+    />
     <div className="max-w-2xl mx-auto px-4 py-16">
       <h1 className="text-3xl font-bold mb-2">
         <a
@@ -125,5 +177,6 @@ export default async function FeedDetail({
         </section>
       )}
     </div>
+    </>
   )
 }

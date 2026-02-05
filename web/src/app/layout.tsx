@@ -7,8 +7,23 @@ import './globals.css'
 const geist = Geist({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Replay — Great blogs, delivered over time',
+  metadataBase: new URL('https://replay.pub'),
+  title: {
+    default: 'Replay — Great blogs, delivered over time',
+    template: '%s | Replay',
+  },
   description: 'Subscribe to classic blog archives and receive posts as a drip email series.',
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    siteName: 'Replay',
+  },
+  twitter: {
+    card: 'summary',
+  },
+  alternates: {
+    canonical: '/',
+  },
 }
 
 export default function RootLayout({
