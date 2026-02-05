@@ -65,7 +65,7 @@ export default async function Home() {
         </h1>
         <p className="text-lg text-gray-600 max-w-2xl mx-auto">
           Subscribe to classic blog archives and receive one post at a time,
-          on your schedule. No algorithms, no feeds &mdash; just great writing in your inbox.
+          on your own schedule. Get timeless writing in your inbox.
         </p>
       </section>
 
