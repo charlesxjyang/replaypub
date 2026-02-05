@@ -116,7 +116,8 @@ function ConfirmContent() {
     )
   }
 
-  const donateUrl = process.env.NEXT_PUBLIC_STRIPE_DONATE_URL
+  const baseUrl = process.env.NEXT_PUBLIC_STRIPE_DONATE_URL
+  const donateUrl = baseUrl ? `${baseUrl}?client_reference_id=${encodeURIComponent(feedId || '')}` : null
 
   return (
     <div>

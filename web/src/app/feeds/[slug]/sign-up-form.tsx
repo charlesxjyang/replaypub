@@ -141,7 +141,8 @@ export default function SignUpForm({
   }
 
   if (status === 'subscribed') {
-    const donateUrl = process.env.NEXT_PUBLIC_STRIPE_DONATE_URL
+    const baseUrl = process.env.NEXT_PUBLIC_STRIPE_DONATE_URL
+    const donateUrl = baseUrl ? `${baseUrl}?client_reference_id=${encodeURIComponent(feedId)}` : null
     return (
       <div className="space-y-4">
         <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
