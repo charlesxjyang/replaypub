@@ -11,6 +11,7 @@ function ConfirmContent() {
   const frequency = parseInt(searchParams.get('frequency') ?? '7', 10)
   const [status, setStatus] = useState<'loading' | 'done' | 'error' | 'already_subscribed'>('loading')
   const [errorDetail, setErrorDetail] = useState<string>('')
+  const [userEmail, setUserEmail] = useState<string | null>(null)
   const supabase = createClient()
 
   useEffect(() => {
@@ -31,6 +32,8 @@ function ConfirmContent() {
         setStatus('error')
         return
       }
+
+      setUserEmail(user.email ?? null)
 
       // Check if already subscribed
       const { data: existing } = await supabase
@@ -117,7 +120,9 @@ function ConfirmContent() {
   }
 
   const baseUrl = process.env.NEXT_PUBLIC_STRIPE_DONATE_URL
-  const donateUrl = baseUrl ? `${baseUrl}?client_reference_id=${encodeURIComponent(feedId || '')}` : null
+  const donateUrl = baseUrl && userEmail
+    ? `${baseUrl}?prefilled_email=${encodeURIComponent(userEmail)}`
+    : baseUrl
 
   return (
     <div>
