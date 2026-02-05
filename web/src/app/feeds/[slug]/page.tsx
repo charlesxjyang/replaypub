@@ -103,11 +103,6 @@ export default async function FeedDetail({
                       </p>
                     )}
                     <div className="flex items-center gap-2 mt-2">
-                      {index === 0 && (
-                        <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded font-medium">
-                          First email
-                        </span>
-                      )}
                       {index === (posts as Post[]).length - 1 && (posts as Post[]).length > 1 && (
                         <span className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded font-medium">
                           Last email
