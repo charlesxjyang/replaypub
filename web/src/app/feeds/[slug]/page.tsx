@@ -136,7 +136,7 @@ export default async function FeedDetail({
         <section>
           <h2 className="text-lg font-semibold mb-1">Delivery order</h2>
           <p className="text-sm text-gray-500 mb-4">
-            Posts are delivered starting from #1. Each email contains one post.
+            Each email contains one post, starting with #1
           </p>
           <div className="space-y-3">
             {(posts as Post[]).map((post, index) => (
