@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import FrequencyPicker from '@/components/FrequencyPicker'
+import DayPicker from '@/components/DayPicker'
+import TimePicker from '@/components/TimePicker'
 import type { User } from '@supabase/supabase-js'
 
 export default function SignUpForm({
@@ -16,10 +18,22 @@ export default function SignUpForm({
 }) {
   const [email, setEmail] = useState('')
   const [frequency, setFrequency] = useState(7)
+  const [preferredDay, setPreferredDay] = useState<number | null>(null)
+  const [preferredHour, setPreferredHour] = useState(9)
+  const [timezone, setTimezone] = useState('UTC')
   const [status, setStatus] = useState<'idle' | 'loading' | 'sent' | 'error' | 'already_subscribed' | 'subscribed' | 'limit_reached'>('idle')
   const [user, setUser] = useState<User | null>(null)
   const [checkingAuth, setCheckingAuth] = useState(true)
   const supabase = createClient()
+
+  // Auto-detect timezone on mount
+  useEffect(() => {
+    try {
+      setTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone)
+    } catch {
+      // Fall back to UTC
+    }
+  }, [])
 
   // Check if user is already logged in
   useEffect(() => {
@@ -67,6 +81,9 @@ export default function SignUpForm({
       blog_id: blogId,
       feed_id: feedId,
       frequency_days: frequency,
+      preferred_day: preferredDay,
+      preferred_hour: preferredHour,
+      timezone,
       current_post_index: 0,
       next_send_at: new Date().toISOString(),
       is_active: true,
@@ -120,11 +137,22 @@ export default function SignUpForm({
     }
 
     // Sign up / sign in with magic link
-    // Store feed + frequency in URL so we can create the subscription after verification
+    // Encode all subscription params into the `next` path so they survive the auth redirect
+    const confirmParams = new URLSearchParams({
+      feed_id: feedId,
+      blog_id: blogId,
+      frequency: String(frequency),
+      preferred_hour: String(preferredHour),
+      timezone,
+    })
+    if (preferredDay !== null) {
+      confirmParams.set('preferred_day', String(preferredDay))
+    }
+    const nextPath = `/subscribe/confirm?${confirmParams.toString()}`
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/subscribe/confirm&feed_id=${feedId}&blog_id=${blogId}&frequency=${frequency}`,
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`,
       },
     })
 
@@ -231,6 +259,16 @@ export default function SignUpForm({
             <span className="text-sm text-gray-600">Receive posts:</span>
             <FrequencyPicker value={frequency} onChange={setFrequency} />
           </div>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-gray-600">Deliver at:</span>
+            <TimePicker value={preferredHour} onChange={setPreferredHour} />
+          </div>
+          {frequency >= 7 && (
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-gray-600">On:</span>
+              <DayPicker value={preferredDay} onChange={setPreferredDay} />
+            </div>
+          )}
           <button
             onClick={handleDirectSubscribe}
             disabled={status === 'loading'}
@@ -268,6 +306,16 @@ export default function SignUpForm({
           <span className="text-sm text-gray-600">Receive posts:</span>
           <FrequencyPicker value={frequency} onChange={setFrequency} />
         </div>
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-gray-600">Deliver at:</span>
+          <TimePicker value={preferredHour} onChange={setPreferredHour} />
+        </div>
+        {frequency >= 7 && (
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-gray-600">On:</span>
+            <DayPicker value={preferredDay} onChange={setPreferredDay} />
+          </div>
+        )}
         <button
           type="submit"
           disabled={status === 'loading'}

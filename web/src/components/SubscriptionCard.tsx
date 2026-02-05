@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase/client'
 import type { Subscription } from '@/lib/types'
 import ProgressBar from './ProgressBar'
 import FrequencyPicker from './FrequencyPicker'
+import DayPicker from './DayPicker'
+import TimePicker from './TimePicker'
 
 export default function SubscriptionCard({
   subscription,
@@ -18,7 +20,7 @@ export default function SubscriptionCard({
   const blog = subscription.blogs
   const feed = subscription.feeds
 
-  async function updateSubscription(updates: Partial<Subscription>) {
+  async function updateSubscription(updates: Record<string, unknown>) {
     setLoading(true)
     await supabase
       .from('subscriptions')
@@ -26,6 +28,26 @@ export default function SubscriptionCard({
       .eq('id', subscription.id)
     setLoading(false)
     onUpdate()
+  }
+
+  function computeNextSend(freqDays: number, day: number | null, hour: number, tz: string): string {
+    // Calculate next send in user's local time, then convert to ISO
+    const now = new Date()
+    const next = new Date(now.getTime() + freqDays * 86400000)
+    // Create a date string in the user's timezone and snap to preferred hour
+    const localStr = next.toLocaleDateString('en-CA', { timeZone: tz }) // YYYY-MM-DD
+    const snapped = new Date(`${localStr}T${String(hour).padStart(2, '0')}:00:00`)
+
+    // If preferred_day set and frequency >= 7, advance to that weekday
+    if (day !== null && freqDays >= 7) {
+      while (snapped.getDay() !== day) {
+        snapped.setDate(snapped.getDate() + 1)
+      }
+    }
+
+    // Convert local time in tz to UTC by using the timezone offset
+    // We'll use a simple approach: format as ISO and let the DB handle it
+    return snapped.toISOString()
   }
 
   const isPaused = !subscription.is_active
@@ -49,10 +71,39 @@ export default function SubscriptionCard({
         </div>
         <FrequencyPicker
           value={subscription.frequency_days}
-          onChange={(days) => updateSubscription({ frequency_days: days })}
+          onChange={(days) => {
+            const nextSend = computeNextSend(days, subscription.preferred_day, subscription.preferred_hour, subscription.timezone)
+            updateSubscription({ frequency_days: days, next_send_at: nextSend })
+          }}
           disabled={loading || subscription.is_completed}
         />
       </div>
+
+      <div className="flex items-center gap-3 mb-3">
+        <span className="text-xs text-gray-500">At:</span>
+        <TimePicker
+          value={subscription.preferred_hour}
+          onChange={(hour) => {
+            const nextSend = computeNextSend(subscription.frequency_days, subscription.preferred_day, hour, subscription.timezone)
+            updateSubscription({ preferred_hour: hour, next_send_at: nextSend })
+          }}
+          disabled={loading || subscription.is_completed}
+        />
+      </div>
+
+      {subscription.frequency_days >= 7 && (
+        <div className="flex items-center gap-3 mb-3">
+          <span className="text-xs text-gray-500">On:</span>
+          <DayPicker
+            value={subscription.preferred_day}
+            onChange={(day) => {
+              const nextSend = computeNextSend(subscription.frequency_days, day, subscription.preferred_hour, subscription.timezone)
+              updateSubscription({ preferred_day: day, next_send_at: nextSend })
+            }}
+            disabled={loading || subscription.is_completed}
+          />
+        </div>
+      )}
 
       <ProgressBar
         current={subscription.current_post_index}

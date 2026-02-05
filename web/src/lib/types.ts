@@ -50,6 +50,9 @@ export interface Subscription {
   feed_id: string | null
   current_post_index: number
   frequency_days: number
+  preferred_day: number | null
+  preferred_hour: number
+  timezone: string
   next_send_at: string | null
   last_sent_at: string | null
   is_active: boolean

@@ -9,6 +9,10 @@ function ConfirmContent() {
   const feedId = searchParams.get('feed_id')
   const blogId = searchParams.get('blog_id')
   const frequency = parseInt(searchParams.get('frequency') ?? '7', 10)
+  const preferredDayParam = searchParams.get('preferred_day')
+  const preferredDay = preferredDayParam !== null ? parseInt(preferredDayParam, 10) : null
+  const preferredHour = parseInt(searchParams.get('preferred_hour') ?? '9', 10)
+  const timezone = searchParams.get('timezone') ?? 'UTC'
   const [status, setStatus] = useState<'loading' | 'done' | 'error' | 'already_subscribed' | 'limit_reached'>('loading')
   const [errorDetail, setErrorDetail] = useState<string>('')
   const [userEmail, setUserEmail] = useState<string | null>(null)
@@ -66,6 +70,9 @@ function ConfirmContent() {
         blog_id: blogId,
         feed_id: feedId,
         frequency_days: frequency,
+        preferred_day: preferredDay,
+        preferred_hour: preferredHour,
+        timezone,
         current_post_index: 0,
         next_send_at: new Date().toISOString(),
         is_active: true,
@@ -84,7 +91,7 @@ function ConfirmContent() {
     }
 
     createSubscription()
-  }, [feedId, blogId, frequency])
+  }, [feedId, blogId, frequency, preferredDay, preferredHour, timezone])
 
   if (status === 'loading') {
     return <p className="text-gray-500">Setting up your subscription...</p>
