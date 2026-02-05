@@ -166,11 +166,6 @@ export default async function FeedDetail({
                       </p>
                     )}
                     <div className="flex items-center gap-2 mt-2">
-                      {index === (posts as Post[]).length - 1 && (posts as Post[]).length > 1 && (
-                        <span className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded font-medium">
-                          Last email
-                        </span>
-                      )}
                       {post.tags && post.tags.length > 0 && post.tags.map((tag) => (
                         <span
                           key={tag}
