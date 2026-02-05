@@ -141,15 +141,36 @@ export default function SignUpForm({
   }
 
   if (status === 'subscribed') {
+    const donateUrl = process.env.NEXT_PUBLIC_STRIPE_DONATE_URL
     return (
-      <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
-        <p className="text-green-800 font-medium mb-1">You&apos;re subscribed!</p>
-        <p className="text-green-700 text-sm mb-3">
-          Your first post from {feedName} will arrive soon.
-        </p>
-        <a href="/dashboard" className="text-green-700 text-sm underline">
-          Go to dashboard
-        </a>
+      <div className="space-y-4">
+        <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
+          <p className="text-green-800 font-medium mb-1">You&apos;re subscribed!</p>
+          <p className="text-green-700 text-sm mb-3">
+            Your first post from {feedName} will arrive soon.
+          </p>
+          <a href="/dashboard" className="text-green-700 text-sm underline">
+            Go to dashboard
+          </a>
+        </div>
+        {donateUrl && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-5 text-left">
+            <p className="text-amber-900 font-medium mb-2">
+              Enjoying Replay?
+            </p>
+            <p className="text-amber-800 text-sm mb-3">
+              If you find it valuable, consider supporting the project.
+            </p>
+            <a
+              href={donateUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block bg-amber-500 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-amber-600"
+            >
+              Support Replay
+            </a>
+          </div>
+        )}
       </div>
     )
   }

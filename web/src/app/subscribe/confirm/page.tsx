@@ -116,6 +116,8 @@ function ConfirmContent() {
     )
   }
 
+  const donateUrl = process.env.NEXT_PUBLIC_STRIPE_DONATE_URL
+
   return (
     <div>
       <h1 className="text-2xl font-bold mb-2">You&apos;re subscribed!</h1>
@@ -123,7 +125,27 @@ function ConfirmContent() {
         Your first post will arrive soon. You can manage your subscription
         from your dashboard.
       </p>
-      <div className="flex gap-3">
+
+      {donateUrl && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-5 mb-6 text-left">
+          <p className="text-amber-900 font-medium mb-2">
+            Enjoying Replay?
+          </p>
+          <p className="text-amber-800 text-sm mb-4">
+            This project is free to use. If you find it valuable, consider buying me a coffee to help keep it running.
+          </p>
+          <a
+            href={donateUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block bg-amber-500 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-amber-600"
+          >
+            Support Replay
+          </a>
+        </div>
+      )}
+
+      <div className="flex gap-3 justify-center">
         <a
           href="/dashboard"
           className="bg-gray-900 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-800"
