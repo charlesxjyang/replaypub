@@ -136,7 +136,7 @@ function ConfirmContent() {
       <div>
         <h1 className="text-2xl font-bold mb-2">Subscription limit reached</h1>
         <p className="text-gray-600 mb-6">
-          You can only subscribe to 3 feeds at a time. Unsubscribe from a feed to add a new one.
+          We currently limit users to 3 active feeds at a time. Unsubscribe from a feed to add a new one.
         </p>
         <div className="flex gap-3">
           <a

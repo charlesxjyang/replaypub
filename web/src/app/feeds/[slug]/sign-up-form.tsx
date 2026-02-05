@@ -209,7 +209,7 @@ export default function SignUpForm({
       <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 text-center">
         <p className="text-amber-800 font-medium mb-1">Subscription limit reached</p>
         <p className="text-amber-700 text-sm mb-3">
-          You can only subscribe to 3 feeds at a time. Unsubscribe from a feed to add a new one.
+          We currently limit users to 3 active feeds at a time. Unsubscribe from a feed to add a new one.
         </p>
         <a href="/dashboard" className="text-amber-700 text-sm underline">
           Manage subscriptions
