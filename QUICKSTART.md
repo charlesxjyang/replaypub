@@ -1,4 +1,4 @@
-# Backstack Quick Start
+# Replay Quick Start
 
 Get your MVP running in ~30 minutes.
 
@@ -32,7 +32,7 @@ SUPABASE_ANON_KEY=eyJ...
 SUPABASE_SERVICE_KEY=eyJ...
 RESEND_API_KEY=re_xxxxx
 FROM_EMAIL=posts@yourdomain.com
-APP_URL=https://backstack.io
+APP_URL=https://replay.pub
 ```
 
 ## 3. Install Dependencies (2 min)

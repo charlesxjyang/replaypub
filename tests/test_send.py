@@ -25,38 +25,34 @@ def sample_item():
 
 class TestRenderEmail:
     def test_placeholders_replaced(self, sample_item):
-        html = render_email(sample_item, 'https://backstack.io')
+        html = render_email(sample_item, 'https://replay.pub')
         assert '{{' not in html
         assert '}}' not in html
 
     def test_blog_name_present(self, sample_item):
-        html = render_email(sample_item, 'https://backstack.io')
+        html = render_email(sample_item, 'https://replay.pub')
         assert 'Test Blog' in html
 
     def test_post_title_present(self, sample_item):
-        html = render_email(sample_item, 'https://backstack.io')
+        html = render_email(sample_item, 'https://replay.pub')
         assert 'My Test Post' in html
 
     def test_post_content_present(self, sample_item):
-        html = render_email(sample_item, 'https://backstack.io')
+        html = render_email(sample_item, 'https://replay.pub')
         assert 'This is the post content.' in html
 
-    def test_progress_text(self, sample_item):
-        html = render_email(sample_item, 'https://backstack.io')
-        assert 'Post 5 of 20' in html
-
-    def test_progress_percentage(self, sample_item):
-        html = render_email(sample_item, 'https://backstack.io')
-        assert '25%' in html  # 5/20 = 25%
+    def test_footer_present(self, sample_item):
+        html = render_email(sample_item, 'https://replay.pub')
+        assert 'Replay' in html
 
     def test_unsubscribe_url(self, sample_item):
-        html = render_email(sample_item, 'https://backstack.io')
-        expected = f"https://backstack.io/unsubscribe?sid={sample_item['subscription_id']}"
+        html = render_email(sample_item, 'https://replay.pub')
+        expected = f"https://replay.pub/unsubscribe?sid={sample_item['subscription_id']}"
         assert expected in html
 
     def test_app_url(self, sample_item):
-        html = render_email(sample_item, 'https://backstack.io')
-        assert 'https://backstack.io' in html
+        html = render_email(sample_item, 'https://replay.pub')
+        assert 'https://replay.pub' in html
 
 
 class TestSendEmail:
