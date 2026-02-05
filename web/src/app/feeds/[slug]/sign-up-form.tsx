@@ -16,7 +16,7 @@ export default function SignUpForm({
 }) {
   const [email, setEmail] = useState('')
   const [frequency, setFrequency] = useState(7)
-  const [status, setStatus] = useState<'idle' | 'loading' | 'sent' | 'error' | 'already_subscribed' | 'subscribed'>('idle')
+  const [status, setStatus] = useState<'idle' | 'loading' | 'sent' | 'error' | 'already_subscribed' | 'subscribed' | 'limit_reached'>('idle')
   const [user, setUser] = useState<User | null>(null)
   const [checkingAuth, setCheckingAuth] = useState(true)
   const supabase = createClient()
@@ -49,6 +49,18 @@ export default function SignUpForm({
   async function handleDirectSubscribe() {
     if (!user) return
     setStatus('loading')
+
+    // Check subscription limit (max 3 active feeds)
+    const { count } = await supabase
+      .from('subscriptions')
+      .select('*', { count: 'exact', head: true })
+      .eq('subscriber_id', user.id)
+      .eq('is_active', true)
+
+    if (count !== null && count >= 3) {
+      setStatus('limit_reached')
+      return
+    }
 
     const { error } = await supabase.from('subscriptions').insert({
       subscriber_id: user.id,
@@ -187,6 +199,20 @@ export default function SignUpForm({
         </p>
         <a href="/dashboard" className="text-blue-700 text-sm underline">
           Go to dashboard
+        </a>
+      </div>
+    )
+  }
+
+  if (status === 'limit_reached') {
+    return (
+      <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 text-center">
+        <p className="text-amber-800 font-medium mb-1">Subscription limit reached</p>
+        <p className="text-amber-700 text-sm mb-3">
+          You can only subscribe to 3 feeds at a time. Unsubscribe from a feed to add a new one.
+        </p>
+        <a href="/dashboard" className="text-amber-700 text-sm underline">
+          Manage subscriptions
         </a>
       </div>
     )

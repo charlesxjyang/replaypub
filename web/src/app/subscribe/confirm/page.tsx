@@ -9,7 +9,7 @@ function ConfirmContent() {
   const feedId = searchParams.get('feed_id')
   const blogId = searchParams.get('blog_id')
   const frequency = parseInt(searchParams.get('frequency') ?? '7', 10)
-  const [status, setStatus] = useState<'loading' | 'done' | 'error' | 'already_subscribed'>('loading')
+  const [status, setStatus] = useState<'loading' | 'done' | 'error' | 'already_subscribed' | 'limit_reached'>('loading')
   const [errorDetail, setErrorDetail] = useState<string>('')
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const supabase = createClient()
@@ -45,6 +45,18 @@ function ConfirmContent() {
 
       if (existing) {
         setStatus('already_subscribed')
+        return
+      }
+
+      // Check subscription limit (max 3 active feeds)
+      const { count } = await supabase
+        .from('subscriptions')
+        .select('*', { count: 'exact', head: true })
+        .eq('subscriber_id', user.id)
+        .eq('is_active', true)
+
+      if (count !== null && count >= 3) {
+        setStatus('limit_reached')
         return
       }
 
@@ -110,6 +122,28 @@ function ConfirmContent() {
             className="bg-gray-900 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-800"
           >
             Go to dashboard
+          </a>
+          <a href="/" className="text-gray-600 hover:text-gray-900 px-4 py-2 text-sm font-medium">
+            Back to home
+          </a>
+        </div>
+      </div>
+    )
+  }
+
+  if (status === 'limit_reached') {
+    return (
+      <div>
+        <h1 className="text-2xl font-bold mb-2">Subscription limit reached</h1>
+        <p className="text-gray-600 mb-6">
+          You can only subscribe to 3 feeds at a time. Unsubscribe from a feed to add a new one.
+        </p>
+        <div className="flex gap-3">
+          <a
+            href="/dashboard"
+            className="bg-gray-900 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-800"
+          >
+            Manage subscriptions
           </a>
           <a href="/" className="text-gray-600 hover:text-gray-900 px-4 py-2 text-sm font-medium">
             Back to home
