@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import type { Feed } from '@/lib/types'
-import FeedCard from '@/components/FeedCard'
+import FeedCard, { AWAITING_PERMISSION_AUTHORS } from '@/components/FeedCard'
 
 export const dynamic = 'force-dynamic'
 
@@ -53,8 +53,14 @@ export default async function Home() {
     feedsByAuthor[author].push(feed)
   }
 
-  // Sort authors alphabetically
-  const sortedAuthors = Object.keys(feedsByAuthor).sort()
+  // Sort authors: active first (alphabetically), then awaiting permission (alphabetically)
+  const sortedAuthors = Object.keys(feedsByAuthor).sort((a, b) => {
+    const aAwaiting = AWAITING_PERMISSION_AUTHORS.includes(a)
+    const bAwaiting = AWAITING_PERMISSION_AUTHORS.includes(b)
+    if (aAwaiting && !bAwaiting) return 1
+    if (!aAwaiting && bAwaiting) return -1
+    return a.localeCompare(b)
+  })
 
   const jsonLd = {
     '@context': 'https://schema.org',
