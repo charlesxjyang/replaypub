@@ -2,7 +2,6 @@
 
 const OPTIONS = [
   { value: 1, label: 'Daily' },
-  { value: 3, label: 'Every 3 days' },
   { value: 7, label: 'Weekly' },
   { value: 14, label: 'Biweekly' },
 ]
