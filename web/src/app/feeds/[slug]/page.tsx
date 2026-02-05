@@ -37,9 +37,22 @@ export default async function FeedDetail({
 
   const { data: posts } = await query
 
+  // Use feed's source_url if set, otherwise fall back to blog URL
+  const sourceUrl = typedFeed.source_url || blog.url
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-16">
-      <h1 className="text-3xl font-bold mb-2">{typedFeed.name}</h1>
+      <h1 className="text-3xl font-bold mb-2">
+        <a
+          href={sourceUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hover:text-blue-600 transition-colors"
+        >
+          {typedFeed.name}
+          <span className="text-gray-400 ml-2 text-lg">↗</span>
+        </a>
+      </h1>
       {blog.author && (
         <p className="text-gray-500 mb-2">by {blog.author}</p>
       )}

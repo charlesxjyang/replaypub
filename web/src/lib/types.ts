@@ -19,6 +19,7 @@ export interface Feed {
   slug: string
   description: string | null
   tag_filter: string | null
+  source_url: string | null
   is_active: boolean
   created_at: string
   // Joined
