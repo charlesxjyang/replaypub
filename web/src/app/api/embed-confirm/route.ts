@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
   const frequency = parseInt(searchParams.get('frequency') ?? '7', 10)
   const timezone = searchParams.get('timezone') ?? 'UTC'
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://replaypub.vercel.app'
+  const { origin: appUrl } = new URL(request.url)
 
   if (!tokenHash || !email || !feedId || !blogId) {
     return NextResponse.redirect(`${appUrl}/?error=invalid_link`)
