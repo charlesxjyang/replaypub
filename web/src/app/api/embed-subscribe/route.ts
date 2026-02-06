@@ -1,5 +1,11 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { createHmac } from 'crypto'
+
+function signParams(params: Record<string, string>, secret: string): string {
+  const payload = Object.keys(params).sort().map(k => `${k}=${params[k]}`).join('&')
+  return createHmac('sha256', secret).update(payload).digest('hex')
+}
 
 export async function POST(request: NextRequest) {
   const { email, feed_id, blog_id, frequency, timezone, feed_name } = await request.json()
@@ -34,39 +40,29 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Build the confirm page URL
-  const confirmParams = new URLSearchParams({
+  // Build HMAC-signed confirmation link (no Supabase auth flow needed)
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://replaypub.vercel.app'
+  const secret = process.env.SUPABASE_SERVICE_KEY!
+  const ts = String(Math.floor(Date.now() / 1000))
+
+  const params: Record<string, string> = {
+    email: email.toLowerCase(),
     feed_id,
     blog_id,
     frequency: String(frequency || 7),
-    preferred_hour: '9',
     timezone: timezone || 'UTC',
-  })
-
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://replaypub.vercel.app'
-  const redirectTo = `${appUrl}/auth/callback?next=${encodeURIComponent(`/subscribe/confirm?${confirmParams.toString()}`)}`
-
-  // Generate magic link via admin API (bypasses PKCE)
-  const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
-    type: 'magiclink',
-    email,
-    options: { redirectTo },
-  })
-
-  if (linkError || !linkData) {
-    console.error('generateLink error:', linkError)
-    return NextResponse.json({ error: 'Failed to generate link' }, { status: 500 })
+    ts,
   }
 
-  // The admin API returns the full verification URL
-  // We need to extract the token_hash and build the proper link
-  const verificationUrl = linkData.properties?.action_link
-  if (!verificationUrl) {
-    console.error('No action_link in response:', linkData)
-    return NextResponse.json({ error: 'Failed to generate link' }, { status: 500 })
-  }
+  const sig = signParams(params, secret)
 
-  // Send the magic link email via Resend
+  const confirmUrl = new URL(`${appUrl}/api/embed-confirm`)
+  for (const [k, v] of Object.entries(params)) {
+    confirmUrl.searchParams.set(k, v)
+  }
+  confirmUrl.searchParams.set('sig', sig)
+
+  // Send confirmation email via Resend
   const resendKey = process.env.RESEND_API_KEY
   if (!resendKey) {
     return NextResponse.json({ error: 'Email not configured' }, { status: 500 })
@@ -101,14 +97,17 @@ export async function POST(request: NextRequest) {
               <h1 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 600; color: #111827;">
                 Confirm your subscription
               </h1>
-              <p style="margin: 0 0 24px 0; font-size: 15px; line-height: 1.6; color: #4b5563;">
-                Click the button below to start receiving posts from <strong>${displayName}</strong>.
+              <p style="margin: 0 0 8px 0; font-size: 15px; line-height: 1.6; color: #4b5563;">
+                Thanks for signing up for <strong>${displayName}</strong>!
               </p>
-              <a href="${verificationUrl}" style="display: inline-block; background-color: #111827; color: #ffffff; font-size: 15px; font-weight: 500; text-decoration: none; padding: 12px 32px; border-radius: 6px;">
+              <p style="margin: 0 0 24px 0; font-size: 15px; line-height: 1.6; color: #4b5563;">
+                Click the button below to confirm and start receiving posts in your inbox.
+              </p>
+              <a href="${confirmUrl.toString()}" style="display: inline-block; background-color: #111827; color: #ffffff; font-size: 15px; font-weight: 500; text-decoration: none; padding: 12px 32px; border-radius: 6px;">
                 Confirm &amp; subscribe
               </a>
               <p style="margin: 24px 0 0 0; font-size: 13px; color: #9ca3af;">
-                If you didn't request this, you can ignore this email.
+                If you didn't request this, you can safely ignore this email.
               </p>
             </td>
           </tr>
