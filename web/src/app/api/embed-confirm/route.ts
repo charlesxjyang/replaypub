@@ -1,10 +1,12 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
-import { createHmac } from 'crypto'
+import crypto from 'node:crypto'
+
+export const runtime = 'nodejs'
 
 function signParams(params: Record<string, string>, secret: string): string {
   const payload = Object.keys(params).sort().map(k => `${k}=${params[k]}`).join('&')
-  return createHmac('sha256', secret).update(payload).digest('hex')
+  return crypto.createHmac('sha256', secret).update(payload).digest('hex')
 }
 
 export async function GET(request: NextRequest) {

@@ -1,86 +1,90 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
-import { createHmac } from 'crypto'
+import crypto from 'node:crypto'
+
+export const runtime = 'nodejs'
 
 function signParams(params: Record<string, string>, secret: string): string {
   const payload = Object.keys(params).sort().map(k => `${k}=${params[k]}`).join('&')
-  return createHmac('sha256', secret).update(payload).digest('hex')
+  return crypto.createHmac('sha256', secret).update(payload).digest('hex')
 }
 
 export async function POST(request: NextRequest) {
-  const { email, feed_id, blog_id, frequency, timezone, feed_name } = await request.json()
+  try {
+    const { email, feed_id, blog_id, frequency, timezone, feed_name } = await request.json()
 
-  if (!email || !feed_id || !blog_id) {
-    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
-  }
+    if (!email || !feed_id || !blog_id) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    }
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_KEY!
-  )
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_KEY!
+    )
 
-  // Check if already subscribed
-  const { data: subscriber } = await supabase
-    .from('subscribers')
-    .select('id')
-    .eq('email', email.toLowerCase())
-    .maybeSingle()
-
-  if (subscriber) {
-    const { data: existing } = await supabase
-      .from('subscriptions')
+    // Check if already subscribed
+    const { data: subscriber } = await supabase
+      .from('subscribers')
       .select('id')
-      .eq('subscriber_id', subscriber.id)
-      .eq('feed_id', feed_id)
-      .eq('is_active', true)
+      .eq('email', email.toLowerCase())
       .maybeSingle()
 
-    if (existing) {
-      return NextResponse.json({ status: 'already_subscribed' })
+    if (subscriber) {
+      const { data: existing } = await supabase
+        .from('subscriptions')
+        .select('id')
+        .eq('subscriber_id', subscriber.id)
+        .eq('feed_id', feed_id)
+        .eq('is_active', true)
+        .maybeSingle()
+
+      if (existing) {
+        return NextResponse.json({ status: 'already_subscribed' })
+      }
     }
-  }
 
-  // Build HMAC-signed confirmation link (no Supabase auth flow needed)
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://replaypub.vercel.app'
-  const secret = process.env.SUPABASE_SERVICE_KEY!
-  const ts = String(Math.floor(Date.now() / 1000))
+    // Build HMAC-signed confirmation link (no Supabase auth flow needed)
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://replaypub.vercel.app'
+    const secret = process.env.SUPABASE_SERVICE_KEY!
+    const ts = String(Math.floor(Date.now() / 1000))
 
-  const params: Record<string, string> = {
-    email: email.toLowerCase(),
-    feed_id,
-    blog_id,
-    frequency: String(frequency || 7),
-    timezone: timezone || 'UTC',
-    ts,
-  }
+    const params: Record<string, string> = {
+      email: email.toLowerCase(),
+      feed_id,
+      blog_id,
+      frequency: String(frequency || 7),
+      timezone: timezone || 'UTC',
+      ts,
+    }
 
-  const sig = signParams(params, secret)
+    const sig = signParams(params, secret)
 
-  const confirmUrl = new URL(`${appUrl}/api/embed-confirm`)
-  for (const [k, v] of Object.entries(params)) {
-    confirmUrl.searchParams.set(k, v)
-  }
-  confirmUrl.searchParams.set('sig', sig)
+    const confirmUrl = new URL(`${appUrl}/api/embed-confirm`)
+    for (const [k, v] of Object.entries(params)) {
+      confirmUrl.searchParams.set(k, v)
+    }
+    confirmUrl.searchParams.set('sig', sig)
 
-  // Send confirmation email via Resend
-  const resendKey = process.env.RESEND_API_KEY
-  if (!resendKey) {
-    return NextResponse.json({ error: 'Email not configured' }, { status: 500 })
-  }
+    // Send confirmation email via Resend
+    const resendKey = process.env.RESEND_API_KEY
+    if (!resendKey) {
+      console.error('RESEND_API_KEY not configured')
+      return NextResponse.json({ error: 'Email not configured' }, { status: 500 })
+    }
 
-  const displayName = feed_name || 'this feed'
+    const displayName = feed_name || 'this feed'
 
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${resendKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: process.env.FROM_EMAIL || 'posts@replay.pub',
-      to: email,
-      subject: `Confirm your subscription to ${displayName}`,
-      html: `
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${resendKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: process.env.FROM_EMAIL || 'posts@replay.pub',
+        to: email,
+        subject: `Confirm your subscription to ${displayName}`,
+        html: `
 <!DOCTYPE html>
 <html>
 <head>
@@ -120,15 +124,19 @@ export async function POST(request: NextRequest) {
   </table>
 </body>
 </html>
-      `,
-    }),
-  })
+        `,
+      }),
+    })
 
-  if (!res.ok) {
-    const error = await res.text()
-    console.error('Resend error:', error)
-    return NextResponse.json({ error: 'Failed to send email' }, { status: 500 })
+    if (!res.ok) {
+      const error = await res.text()
+      console.error('Resend error:', error)
+      return NextResponse.json({ error: 'Failed to send email' }, { status: 500 })
+    }
+
+    return NextResponse.json({ status: 'sent' })
+  } catch (err) {
+    console.error('embed-subscribe error:', err)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-
-  return NextResponse.json({ status: 'sent' })
 }
