@@ -1,12 +1,18 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
-import crypto from 'node:crypto'
 
-export const runtime = 'nodejs'
-
-function signParams(params: Record<string, string>, secret: string): string {
+async function signParams(params: Record<string, string>, secret: string): Promise<string> {
+  const encoder = new TextEncoder()
   const payload = Object.keys(params).sort().map(k => `${k}=${params[k]}`).join('&')
-  return crypto.createHmac('sha256', secret).update(payload).digest('hex')
+  const key = await globalThis.crypto.subtle.importKey(
+    'raw',
+    encoder.encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  )
+  const sig = await globalThis.crypto.subtle.sign('HMAC', key, encoder.encode(payload))
+  return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('')
 }
 
 export async function GET(request: NextRequest) {
@@ -36,7 +42,7 @@ export async function GET(request: NextRequest) {
     ts,
   }
 
-  const expectedSig = signParams(params, secret)
+  const expectedSig = await signParams(params, secret)
   if (sig !== expectedSig) {
     return NextResponse.redirect(`${appUrl}/?error=invalid_link`)
   }

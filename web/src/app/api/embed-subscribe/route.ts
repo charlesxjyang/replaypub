@@ -1,12 +1,18 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
-import crypto from 'node:crypto'
 
-export const runtime = 'nodejs'
-
-function signParams(params: Record<string, string>, secret: string): string {
+async function signParams(params: Record<string, string>, secret: string): Promise<string> {
+  const encoder = new TextEncoder()
   const payload = Object.keys(params).sort().map(k => `${k}=${params[k]}`).join('&')
-  return crypto.createHmac('sha256', secret).update(payload).digest('hex')
+  const key = await globalThis.crypto.subtle.importKey(
+    'raw',
+    encoder.encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  )
+  const sig = await globalThis.crypto.subtle.sign('HMAC', key, encoder.encode(payload))
+  return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('')
 }
 
 export async function POST(request: NextRequest) {
@@ -43,7 +49,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Build HMAC-signed confirmation link (no Supabase auth flow needed)
+    // Build HMAC-signed confirmation link
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://replaypub.vercel.app'
     const secret = process.env.SUPABASE_SERVICE_KEY!
     const ts = String(Math.floor(Date.now() / 1000))
@@ -57,7 +63,7 @@ export async function POST(request: NextRequest) {
       ts,
     }
 
-    const sig = signParams(params, secret)
+    const sig = await signParams(params, secret)
 
     const confirmUrl = new URL(`${appUrl}/api/embed-confirm`)
     for (const [k, v] of Object.entries(params)) {
@@ -68,8 +74,7 @@ export async function POST(request: NextRequest) {
     // Send confirmation email via Resend
     const resendKey = process.env.RESEND_API_KEY
     if (!resendKey) {
-      console.error('RESEND_API_KEY not configured')
-      return NextResponse.json({ error: 'Email not configured' }, { status: 500 })
+      return NextResponse.json({ error: 'RESEND_API_KEY not configured' }, { status: 500 })
     }
 
     const displayName = feed_name || 'this feed'
@@ -131,12 +136,15 @@ export async function POST(request: NextRequest) {
     if (!res.ok) {
       const error = await res.text()
       console.error('Resend error:', error)
-      return NextResponse.json({ error: 'Failed to send email' }, { status: 500 })
+      return NextResponse.json({ error: `Resend failed: ${error}` }, { status: 500 })
     }
 
     return NextResponse.json({ status: 'sent' })
   } catch (err) {
     console.error('embed-subscribe error:', err)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : 'Internal server error' },
+      { status: 500 }
+    )
   }
 }
