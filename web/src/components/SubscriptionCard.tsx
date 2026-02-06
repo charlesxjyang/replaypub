@@ -126,9 +126,15 @@ export default function SubscriptionCard({
           </button>
         )}
         <button
-          onClick={() => {
+          onClick={async () => {
             if (confirm('Unsubscribe from this blog?')) {
-              updateSubscription({ is_active: false })
+              setLoading(true)
+              await supabase
+                .from('subscriptions')
+                .delete()
+                .eq('id', subscription.id)
+              setLoading(false)
+              onUpdate()
             }
           }}
           disabled={loading}

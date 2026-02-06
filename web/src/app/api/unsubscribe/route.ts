@@ -16,7 +16,7 @@ export async function POST(request: Request) {
 
   const { error } = await supabase
     .from('subscriptions')
-    .update({ is_active: false })
+    .delete()
     .eq('id', subscription_id)
 
   if (error) {
