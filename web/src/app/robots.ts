@@ -7,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: '/',
       disallow: ['/dashboard', '/subscribe/', '/unsubscribe', '/api/', '/auth/'],
     },
-    sitemap: 'https://replay.pub/sitemap.xml',
+    sitemap: 'https://replaypub.vercel.app/sitemap.xml',
   }
 }

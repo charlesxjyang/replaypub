@@ -65,7 +65,7 @@ export default async function BlogDetail({
     '@type': 'WebPage',
     name: blog.name,
     description: blog.description ?? undefined,
-    url: `https://replay.pub/blogs/${slug}`,
+    url: `https://replaypub.vercel.app/blogs/${slug}`,
     ...(blog.author ? { author: { '@type': 'Person', name: blog.author } } : {}),
   }
 

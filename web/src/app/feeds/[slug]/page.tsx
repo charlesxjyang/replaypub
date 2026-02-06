@@ -75,7 +75,7 @@ export default async function FeedDetail({
     '@type': 'WebPage',
     name: typedFeed.name,
     description: typedFeed.description ?? undefined,
-    url: `https://replay.pub/feeds/${slug}`,
+    url: `https://replaypub.vercel.app/feeds/${slug}`,
     mainEntity: {
       '@type': 'ItemList',
       numberOfItems: (posts as Post[] ?? []).length,

@@ -15,7 +15,7 @@ export default function SuccessContent() {
           You already have an active subscription to this feed.
         </p>
         <a
-          href="https://replay.pub/dashboard"
+          href="https://replaypub.vercel.app/dashboard"
           className="text-blue-600 hover:text-blue-700 text-sm font-medium"
         >
           Go to dashboard
@@ -37,7 +37,7 @@ export default function SuccessContent() {
         You can manage your subscription anytime from the Replay dashboard.
       </p>
       <a
-        href="https://replay.pub/dashboard"
+        href="https://replaypub.vercel.app/dashboard"
         className="inline-block bg-gray-900 text-white px-6 py-2.5 rounded-md text-sm font-medium hover:bg-gray-800"
       >
         Go to dashboard

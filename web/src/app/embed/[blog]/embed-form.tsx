@@ -92,7 +92,7 @@ export default function EmbedForm({
           </p>
         </div>
         <p className="text-xs text-gray-400 mt-3">
-          Powered by <a href="https://replay.pub" target="_blank" rel="noopener noreferrer" className="underline">Replay</a>
+          Powered by <a href="https://replaypub.vercel.app" target="_blank" rel="noopener noreferrer" className="underline">Replay</a>
         </p>
       </div>
     )
@@ -105,7 +105,7 @@ export default function EmbedForm({
           <p className="text-blue-800 font-medium mb-1">Already subscribed</p>
           <p className="text-blue-700 text-sm">
             You&apos;re already receiving this feed. Manage it on your{' '}
-            <a href="https://replay.pub/dashboard" target="_blank" rel="noopener noreferrer" className="underline">
+            <a href="https://replaypub.vercel.app/dashboard" target="_blank" rel="noopener noreferrer" className="underline">
               dashboard
             </a>.
           </p>
@@ -192,7 +192,7 @@ export default function EmbedForm({
       </form>
 
       <p className="text-xs text-gray-400 mt-3 text-center">
-        Powered by <a href="https://replay.pub" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-600">Replay</a>
+        Powered by <a href="https://replaypub.vercel.app" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-600">Replay</a>
       </p>
     </div>
   )

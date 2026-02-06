@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Email not configured' }, { status: 500 })
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'https://replay.pub'
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'https://replaypub.vercel.app'
 
   try {
     const res = await fetch('https://api.resend.com/emails', {

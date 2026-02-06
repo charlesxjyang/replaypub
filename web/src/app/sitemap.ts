@@ -7,8 +7,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const supabase = await createClient()
 
   const staticPages: MetadataRoute.Sitemap = [
-    { url: 'https://replay.pub', changeFrequency: 'weekly', priority: 1 },
-    { url: 'https://replay.pub/request', changeFrequency: 'weekly', priority: 0.6 },
+    { url: 'https://replaypub.vercel.app', changeFrequency: 'weekly', priority: 1 },
+    { url: 'https://replaypub.vercel.app/request', changeFrequency: 'weekly', priority: 0.6 },
   ]
 
   const { data: feeds } = await supabase
@@ -17,7 +17,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .eq('is_active', true)
 
   const feedPages: MetadataRoute.Sitemap = (feeds ?? []).map((feed) => ({
-    url: `https://replay.pub/feeds/${feed.slug}`,
+    url: `https://replaypub.vercel.app/feeds/${feed.slug}`,
     lastModified: feed.created_at,
     changeFrequency: 'monthly',
     priority: 0.8,
@@ -29,7 +29,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .eq('is_active', true)
 
   const blogPages: MetadataRoute.Sitemap = (blogs ?? []).map((blog) => ({
-    url: `https://replay.pub/blogs/${blog.slug}`,
+    url: `https://replaypub.vercel.app/blogs/${blog.slug}`,
     lastModified: blog.updated_at,
     changeFrequency: 'monthly',
     priority: 0.7,

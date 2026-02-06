@@ -66,7 +66,7 @@ export default async function Home() {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
     name: 'Replay',
-    url: 'https://replay.pub',
+    url: 'https://replaypub.vercel.app',
     description: 'Subscribe to classic blog archives and receive posts as a drip email series.',
   }
 

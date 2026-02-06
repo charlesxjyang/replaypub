@@ -7,7 +7,7 @@ import './globals.css'
 const geist = Geist({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://replay.pub'),
+  metadataBase: new URL('https://replaypub.vercel.app'),
   title: {
     default: 'Replay — Great blogs, delivered over time',
     template: '%s | Replay',
