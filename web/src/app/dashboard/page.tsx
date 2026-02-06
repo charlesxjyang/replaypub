@@ -24,14 +24,15 @@ export default function Dashboard() {
 
     // For feeds with tag_filter, get the actual post count
     const enriched = await Promise.all(
-      data.map(async (sub: Record<string, unknown>) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      data.map(async (sub: any) => {
         const feed = sub.feeds as { name: string; slug: string; tag_filter: string | null } | null
         const blog = sub.blogs as { name: string; post_count: number; slug: string }
         if (feed?.tag_filter) {
           const { count } = await supabase
             .from('posts')
             .select('*', { count: 'exact', head: true })
-            .eq('blog_id', sub.blog_id as string)
+            .eq('blog_id', sub.blog_id)
             .contains('tags', [feed.tag_filter])
           return { ...sub, blogs: { ...blog, post_count: count ?? 0 } }
         }
@@ -39,7 +40,7 @@ export default function Dashboard() {
       })
     )
 
-    setSubscriptions(enriched as Subscription[])
+    setSubscriptions(enriched as unknown as Subscription[])
     setLoading(false)
   }, [])
 
