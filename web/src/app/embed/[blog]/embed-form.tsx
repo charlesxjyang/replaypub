@@ -87,6 +87,9 @@ export default function EmbedForm({
             Click it to start receiving {selectedFeed.tag_filter ? feedLabel(selectedFeed) : ''} posts
             {author ? ` from ${author}` : ''}.
           </p>
+          <p className="text-green-600 text-xs mt-2">
+            Don&apos;t see it? Check your spam folder.
+          </p>
         </div>
         <p className="text-xs text-gray-400 mt-3">
           Powered by <a href="https://replay.pub" target="_blank" rel="noopener noreferrer" className="underline">Replay</a>
