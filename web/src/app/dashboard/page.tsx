@@ -13,10 +13,33 @@ export default function Dashboard() {
   const fetchSubscriptions = useCallback(async () => {
     const { data } = await supabase
       .from('subscriptions')
-      .select('*, blogs(name, post_count, slug), feeds(name, slug)')
+      .select('*, blogs(name, post_count, slug), feeds(name, slug, tag_filter)')
       .order('created_at', { ascending: false })
 
-    setSubscriptions((data as Subscription[]) ?? [])
+    if (!data) {
+      setSubscriptions([])
+      setLoading(false)
+      return
+    }
+
+    // For feeds with tag_filter, get the actual post count
+    const enriched = await Promise.all(
+      data.map(async (sub: Record<string, unknown>) => {
+        const feed = sub.feeds as { name: string; slug: string; tag_filter: string | null } | null
+        const blog = sub.blogs as { name: string; post_count: number; slug: string }
+        if (feed?.tag_filter) {
+          const { count } = await supabase
+            .from('posts')
+            .select('*', { count: 'exact', head: true })
+            .eq('blog_id', sub.blog_id as string)
+            .contains('tags', [feed.tag_filter])
+          return { ...sub, blogs: { ...blog, post_count: count ?? 0 } }
+        }
+        return sub
+      })
+    )
+
+    setSubscriptions(enriched as Subscription[])
     setLoading(false)
   }, [])
 

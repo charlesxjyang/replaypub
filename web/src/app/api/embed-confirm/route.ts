@@ -1,63 +1,47 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient as createServiceClient } from '@supabase/supabase-js'
+import { createClient as createSSRClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url)
-  const tokenHash = searchParams.get('token_hash')
-  const email = searchParams.get('email')
+  const { searchParams, origin } = new URL(request.url)
+  const code = searchParams.get('code')
   const feedId = searchParams.get('feed_id')
   const blogId = searchParams.get('blog_id')
   const frequency = parseInt(searchParams.get('frequency') ?? '7', 10)
   const timezone = searchParams.get('timezone') ?? 'UTC'
 
-  const { origin: appUrl } = new URL(request.url)
-
-  if (!tokenHash || !email || !feedId || !blogId) {
-    return NextResponse.redirect(`${appUrl}/?error=invalid_link`)
+  if (!feedId || !blogId) {
+    return NextResponse.redirect(`${origin}/?error=invalid_link`)
   }
 
-  const supabase = createClient(
+  // Exchange auth code for session (sets browser cookies)
+  if (code) {
+    const supabaseSSR = await createSSRClient()
+    const { error } = await supabaseSSR.auth.exchangeCodeForSession(code)
+    if (error) {
+      console.error('Code exchange error:', error)
+    }
+  }
+
+  // Use service client for subscription creation
+  const supabase = createServiceClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_KEY!
   )
 
   try {
-    // Verify the magic link token via Supabase
-    const { error: verifyError } = await supabase.auth.verifyOtp({
-      token_hash: tokenHash,
-      type: 'magiclink',
-    })
+    // Get user from SSR client (now has session from code exchange)
+    const supabaseSSR = await createSSRClient()
+    const { data: { user } } = await supabaseSSR.auth.getUser()
 
-    if (verifyError) {
-      console.error('Token verification error:', verifyError)
-      return NextResponse.redirect(`${appUrl}/?error=invalid_link`)
-    }
-
-    // Get or create the subscriber
-    let userId: string
-
-    const { data: existingSub } = await supabase
-      .from('subscribers')
-      .select('id')
-      .eq('email', email.toLowerCase())
-      .maybeSingle()
-
-    if (existingSub) {
-      userId = existingSub.id
-    } else {
-      // User was created by generateLink, find them via auth
-      const { data: { users } } = await supabase.auth.admin.listUsers()
-      const authUser = users?.find(u => u.email === email.toLowerCase())
-      if (!authUser) {
-        return NextResponse.redirect(`${appUrl}/?error=subscription_failed`)
-      }
-      userId = authUser.id
+    if (!user) {
+      return NextResponse.redirect(`${origin}/?error=auth`)
     }
 
     // Ensure subscriber row exists
     await supabase.from('subscribers').upsert({
-      id: userId,
-      email: email.toLowerCase(),
+      id: user.id,
+      email: user.email!.toLowerCase(),
       is_confirmed: true,
       confirmed_at: new Date().toISOString(),
     }, { onConflict: 'id' })
@@ -66,17 +50,17 @@ export async function GET(request: NextRequest) {
     const { data: existing } = await supabase
       .from('subscriptions')
       .select('id')
-      .eq('subscriber_id', userId)
+      .eq('subscriber_id', user.id)
       .eq('feed_id', feedId)
       .maybeSingle()
 
     if (existing) {
-      return NextResponse.redirect(`${appUrl}/embed/success?already=1`)
+      return NextResponse.redirect(`${origin}/embed/success?already=1`)
     }
 
     // Create subscription
     const { error: subError } = await supabase.from('subscriptions').insert({
-      subscriber_id: userId,
+      subscriber_id: user.id,
       blog_id: blogId,
       feed_id: feedId,
       frequency_days: frequency,
@@ -90,9 +74,9 @@ export async function GET(request: NextRequest) {
     if (subError) {
       console.error('Subscription error:', subError)
       if (subError.code === '23505') {
-        return NextResponse.redirect(`${appUrl}/embed/success?already=1`)
+        return NextResponse.redirect(`${origin}/embed/success?already=1`)
       }
-      return NextResponse.redirect(`${appUrl}/?error=subscription_failed`)
+      return NextResponse.redirect(`${origin}/?error=subscription_failed`)
     }
 
     // Get feed name for the success page
@@ -103,9 +87,9 @@ export async function GET(request: NextRequest) {
       .single()
 
     const feedName = feed?.name ? encodeURIComponent(feed.name) : ''
-    return NextResponse.redirect(`${appUrl}/embed/success?feed=${feedName}`)
+    return NextResponse.redirect(`${origin}/embed/success?feed=${feedName}`)
   } catch (err) {
     console.error('Embed confirm error:', err)
-    return NextResponse.redirect(`${appUrl}/?error=subscription_failed`)
+    return NextResponse.redirect(`${origin}/?error=subscription_failed`)
   }
 }

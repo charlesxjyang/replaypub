@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Ensure auth user exists before generating magic link
+    // Ensure auth user exists
     if (!subscriber) {
       await supabase.auth.admin.createUser({
         email: normalEmail,
@@ -44,10 +44,21 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Generate magic link via Supabase admin API
+    // Store pending subscription params in the redirect URL
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://replaypub.vercel.app'
+    const confirmParams = new URLSearchParams({
+      feed_id,
+      blog_id,
+      frequency: String(frequency || 7),
+      timezone: timezone || 'UTC',
+    })
+    const redirectTo = `${appUrl}/api/embed-confirm?${confirmParams.toString()}`
+
+    // Generate magic link that goes through Supabase auth (sets session cookies)
     const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
       type: 'magiclink',
       email: normalEmail,
+      options: { redirectTo },
     })
 
     if (linkError || !linkData) {
@@ -55,15 +66,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to generate link' }, { status: 500 })
     }
 
-    // Build our confirm URL with the Supabase token + subscription params
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://replaypub.vercel.app'
-    const confirmUrl = new URL(`${appUrl}/api/embed-confirm`)
-    confirmUrl.searchParams.set('token_hash', linkData.properties.hashed_token)
-    confirmUrl.searchParams.set('email', normalEmail)
-    confirmUrl.searchParams.set('feed_id', feed_id)
-    confirmUrl.searchParams.set('blog_id', blog_id)
-    confirmUrl.searchParams.set('frequency', String(frequency || 7))
-    confirmUrl.searchParams.set('timezone', timezone || 'UTC')
+    // The action_link goes through Supabase's auth verify endpoint,
+    // which validates the token, establishes a session, then redirects
+    // to our embed-confirm with the subscription params
+    const confirmUrl = linkData.properties.action_link
 
     // Send confirmation email via Resend
     const resendKey = process.env.RESEND_API_KEY
@@ -106,7 +112,7 @@ export async function POST(request: NextRequest) {
               <p style="margin: 0 0 24px 0; font-size: 15px; line-height: 1.6; color: #4b5563;">
                 Click the button below to confirm and start receiving posts in your inbox.
               </p>
-              <a href="${confirmUrl.toString()}" style="display: inline-block; background-color: #111827; color: #ffffff; font-size: 15px; font-weight: 500; text-decoration: none; padding: 12px 32px; border-radius: 6px;">
+              <a href="${confirmUrl}" style="display: inline-block; background-color: #111827; color: #ffffff; font-size: 15px; font-weight: 500; text-decoration: none; padding: 12px 32px; border-radius: 6px;">
                 Confirm &amp; subscribe
               </a>
               <p style="margin: 24px 0 0 0; font-size: 13px; color: #9ca3af;">
