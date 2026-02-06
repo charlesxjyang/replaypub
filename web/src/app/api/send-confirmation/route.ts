@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: process.env.FROM_EMAIL || 'contact@charlesyang.io',
+        from: process.env.FROM_EMAIL!,
         to: email,
         subject: `You're subscribed to ${feedName}`,
         html: `
