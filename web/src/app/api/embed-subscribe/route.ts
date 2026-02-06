@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: process.env.FROM_EMAIL || 'posts@replay.pub',
+        from: process.env.FROM_EMAIL || 'contact@charlesyang.io',
         to: normalEmail,
         subject: `Confirm your subscription to ${displayName}`,
         html: `
