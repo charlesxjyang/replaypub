@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
 
 interface FeedOption {
   id: string
@@ -28,7 +27,6 @@ export default function EmbedForm({
   const [frequency, setFrequency] = useState(7)
   const [status, setStatus] = useState<'idle' | 'loading' | 'sent' | 'error' | 'already_subscribed'>('idle')
   const [timezone, setTimezone] = useState('UTC')
-  const supabase = createClient()
 
   useEffect(() => {
     try {
@@ -38,7 +36,6 @@ export default function EmbedForm({
     }
   }, [])
 
-  // Label for feed pill: strip blog prefix (e.g. "Rickover: Education" -> "Education")
   function feedLabel(feed: FeedOption) {
     if (!feed.tag_filter) return 'All'
     return feed.tag_filter
@@ -48,39 +45,36 @@ export default function EmbedForm({
     e.preventDefault()
     setStatus('loading')
 
-    // Check if already subscribed
     try {
-      const checkRes = await fetch('/api/check-subscription', {
+      const res = await fetch('/api/embed-subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, feed_id: selectedFeed.id }),
+        body: JSON.stringify({
+          email,
+          feed_id: selectedFeed.id,
+          blog_id: blogId,
+          frequency,
+          timezone,
+          feed_name: selectedFeed.name,
+        }),
       })
-      const { subscribed } = await checkRes.json()
-      if (subscribed) {
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        setStatus('error')
+        return
+      }
+
+      if (data.status === 'already_subscribed') {
         setStatus('already_subscribed')
         return
       }
+
+      setStatus('sent')
     } catch {
-      // If check fails, proceed anyway
+      setStatus('error')
     }
-
-    const confirmParams = new URLSearchParams({
-      feed_id: selectedFeed.id,
-      blog_id: blogId,
-      frequency: String(frequency),
-      preferred_hour: '9',
-      timezone,
-    })
-    const nextPath = `/subscribe/confirm?${confirmParams.toString()}`
-
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`,
-      },
-    })
-
-    setStatus(error ? 'error' : 'sent')
   }
 
   if (status === 'sent') {
@@ -89,7 +83,7 @@ export default function EmbedForm({
         <div className="bg-green-50 border border-green-200 rounded-lg p-5">
           <p className="text-green-800 font-medium mb-1">Check your email</p>
           <p className="text-green-700 text-sm">
-            We sent a verification link to <strong>{email}</strong>.
+            We sent a confirmation link to <strong>{email}</strong>.
             Click it to start receiving {selectedFeed.tag_filter ? feedLabel(selectedFeed) : ''} posts
             {author ? ` from ${author}` : ''}.
           </p>
