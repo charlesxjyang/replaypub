@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: process.env.FROM_EMAIL!,
+        from: process.env.FROM_EMAIL || 'Replay <onboarding@resend.dev>',
         to: normalEmail,
         subject: `Confirm your subscription to ${displayName}`,
         html: `
