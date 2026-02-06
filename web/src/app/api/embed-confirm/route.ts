@@ -1,56 +1,19 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 
-async function signParams(params: Record<string, string>, secret: string): Promise<string> {
-  const encoder = new TextEncoder()
-  const payload = Object.keys(params).sort().map(k => `${k}=${params[k]}`).join('&')
-  const key = await globalThis.crypto.subtle.importKey(
-    'raw',
-    encoder.encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  )
-  const sig = await globalThis.crypto.subtle.sign('HMAC', key, encoder.encode(payload))
-  return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('')
-}
-
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
+  const tokenHash = searchParams.get('token_hash')
   const email = searchParams.get('email')
   const feedId = searchParams.get('feed_id')
   const blogId = searchParams.get('blog_id')
   const frequency = parseInt(searchParams.get('frequency') ?? '7', 10)
   const timezone = searchParams.get('timezone') ?? 'UTC'
-  const ts = searchParams.get('ts')
-  const sig = searchParams.get('sig')
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://replaypub.vercel.app'
 
-  if (!email || !feedId || !blogId || !ts || !sig) {
+  if (!tokenHash || !email || !feedId || !blogId) {
     return NextResponse.redirect(`${appUrl}/?error=invalid_link`)
-  }
-
-  // Verify HMAC signature
-  const secret = process.env.SUPABASE_SERVICE_KEY!
-  const params: Record<string, string> = {
-    email,
-    feed_id: feedId,
-    blog_id: blogId,
-    frequency: String(frequency),
-    timezone,
-    ts,
-  }
-
-  const expectedSig = await signParams(params, secret)
-  if (sig !== expectedSig) {
-    return NextResponse.redirect(`${appUrl}/?error=invalid_link`)
-  }
-
-  // Check expiry (24 hours)
-  const linkAge = Math.floor(Date.now() / 1000) - parseInt(ts, 10)
-  if (linkAge > 86400) {
-    return NextResponse.redirect(`${appUrl}/?error=link_expired`)
   }
 
   const supabase = createClient(
@@ -59,10 +22,20 @@ export async function GET(request: NextRequest) {
   )
 
   try {
-    // Get or create auth user
+    // Verify the magic link token via Supabase
+    const { error: verifyError } = await supabase.auth.verifyOtp({
+      token_hash: tokenHash,
+      type: 'magiclink',
+    })
+
+    if (verifyError) {
+      console.error('Token verification error:', verifyError)
+      return NextResponse.redirect(`${appUrl}/?error=invalid_link`)
+    }
+
+    // Get or create the subscriber
     let userId: string
 
-    // Check if user already exists via subscribers table
     const { data: existingSub } = await supabase
       .from('subscribers')
       .select('id')
@@ -72,19 +45,16 @@ export async function GET(request: NextRequest) {
     if (existingSub) {
       userId = existingSub.id
     } else {
-      // Create new auth user (triggers subscriber creation via DB trigger)
-      const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
-        email,
-        email_confirm: true,
-      })
-      if (createError || !newUser.user) {
-        console.error('Failed to create user:', createError)
+      // User was created by generateLink, find them via auth
+      const { data: { users } } = await supabase.auth.admin.listUsers()
+      const authUser = users?.find(u => u.email === email.toLowerCase())
+      if (!authUser) {
         return NextResponse.redirect(`${appUrl}/?error=subscription_failed`)
       }
-      userId = newUser.user.id
+      userId = authUser.id
     }
 
-    // Ensure subscriber row exists (trigger might not have fired yet)
+    // Ensure subscriber row exists
     await supabase.from('subscribers').upsert({
       id: userId,
       email: email.toLowerCase(),

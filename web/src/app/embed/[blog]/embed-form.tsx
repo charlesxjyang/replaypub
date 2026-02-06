@@ -25,7 +25,7 @@ export default function EmbedForm({
   const [selectedFeed, setSelectedFeed] = useState<FeedOption>(feeds[0])
   const [email, setEmail] = useState('')
   const [frequency, setFrequency] = useState(7)
-  const [status, setStatus] = useState<'idle' | 'loading' | 'subscribed' | 'error' | 'already_subscribed'>('idle')
+  const [status, setStatus] = useState<'idle' | 'loading' | 'sent' | 'error' | 'already_subscribed'>('idle')
   const [timezone, setTimezone] = useState('UTC')
 
   useEffect(() => {
@@ -71,20 +71,21 @@ export default function EmbedForm({
         return
       }
 
-      setStatus('subscribed')
+      setStatus('sent')
     } catch {
       setStatus('error')
     }
   }
 
-  if (status === 'subscribed') {
+  if (status === 'sent') {
     return (
       <div className="text-center py-4">
         <div className="bg-green-50 border border-green-200 rounded-lg p-5">
-          <p className="text-green-800 font-medium mb-1">You&apos;re subscribed!</p>
+          <p className="text-green-800 font-medium mb-1">Check your email</p>
           <p className="text-green-700 text-sm">
-            Your first {selectedFeed.tag_filter ? feedLabel(selectedFeed) : ''} post
-            {author ? ` from ${author}` : ''} will arrive soon at <strong>{email}</strong>.
+            We sent a confirmation link to <strong>{email}</strong>.
+            Click it to start receiving {selectedFeed.tag_filter ? feedLabel(selectedFeed) : ''} posts
+            {author ? ` from ${author}` : ''}.
           </p>
         </div>
         <p className="text-xs text-gray-400 mt-3">
