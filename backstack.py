@@ -115,6 +115,36 @@ def scrape_gwern(output, verbose):
     click.echo(f"Saved {len(posts)} essays to {output}")
 
 
+@cli.command('scrape-rickover')
+@click.option('--output', '-o', default='rickover_raw.json', help='Output file')
+@click.option('--verbose', '-v', is_flag=True)
+def scrape_rickover(output, verbose):
+    """Extract speeches from rickovercorpus.org, tagged by theme.
+
+    Example:
+        python backstack.py scrape-rickover -o rickover_raw.json -v
+        python backstack.py clean rickover_raw.json -b https://rickovercorpus.org -o rickover_clean.json
+    """
+    from scraper.extract import RickoverExtractor
+    import json
+
+    click.echo("Extracting speeches from rickovercorpus.org...")
+
+    extractor = RickoverExtractor(verbose=verbose)
+    posts = extractor.extract()
+
+    if not posts:
+        click.echo("No speeches found!")
+        sys.exit(1)
+
+    data = [p.to_dict() | {'post_index': i} for i, p in enumerate(posts, 1)]
+
+    with open(output, 'w') as f:
+        json.dump(data, f, indent=2)
+
+    click.echo(f"Saved {len(posts)} speeches to {output}")
+
+
 @cli.command('scrape-curated')
 @click.argument('links_file')
 @click.option('--output', '-o', default='curated_raw.json', help='Output file')

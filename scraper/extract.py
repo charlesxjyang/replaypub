@@ -1018,6 +1018,237 @@ class GwernExtractor:
             return None
 
 
+class RickoverExtractor:
+    """Extract speeches/writings from rickovercorpus.org, tagged by theme.
+
+    Each speech is tagged with the themes assigned on the blog page.
+    """
+
+    BASE_URL = "https://rickovercorpus.org"
+    HEADERS = {
+        'User-Agent': 'Replay/0.1 (blog archiver; +https://replay.pub)',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    }
+
+    THEME_URLS = {
+        "Management": [
+            "/posts/doing-a-job.html",
+            "/posts/1979-management-magazine-rickover-on-management.html",
+            "/posts/never-ending-challenge.html",
+            "/posts/rickover-1954-administering-large-projects-speech.html",
+        ],
+        "Leadership": [
+            "/posts/doing-a-job.html",
+            "/posts/1979-management-magazine-rickover-on-management.html",
+        ],
+        "Society": [
+            "/posts/mans-purpose-in-life.html",
+            "/posts/lawyers-versus-society.html",
+            "/posts/business-and-freedom.html",
+            "/posts/liberty-science-and-law.html",
+            "/posts/humanistic-technology.html",
+            "/posts/decline-of-the-individual-post.html",
+            "/posts/role-of-professional-man.html",
+            "/posts/freedom-and-the-knowledge-gap.html",
+            "/posts/technology-and-the-citizen.html",
+            "/posts/in-defense-of-truth.html",
+            "/posts/americas-goals.html",
+            "/posts/role-of-the-critic.html",
+        ],
+        "Government": [
+            "/posts/summary-of-president-nixon-dinner-conversation.html",
+            "/posts/memo-of-conversation-with-jimmy-carter.html",
+            "/posts/some-thoughts-on-the-future-of-the-united-states-government-by-admiral-h-g-rickover-usn.html",
+            "/posts/personal-accountability-in-financial-management.html",
+            "/posts/accounting-practices-do-they-protect-the-public.html",
+            "/posts/who-protects-the-public.html",
+            "/posts/intellect-in-a-democracy.html",
+            "/posts/democracy-and-competence.html",
+        ],
+        "Navy": [
+            "/posts/summary-of-president-nixon-dinner-conversation.html",
+            "/posts/memo-of-conversation-with-jimmy-carter.html",
+            "/posts/the-role-of-engineering-in-the-navy.html",
+            "/posts/nuclear-power-and-bremerton.html",
+            "/posts/never-ending-challenge.html",
+            "/posts/our-naval-revolution.html",
+            "/posts/illusions-cost-too-much.html",
+            "/posts/meaning-of-nautilus-polar-voyage.html",
+            "/posts/rickover-1954-administering-large-projects-speech.html",
+            "/posts/paper-reactor-memo.html",
+        ],
+        "Energy": [
+            "/posts/environmental-perspective.html",
+            "/posts/energy-a-diminishing-capital-resource.html",
+            "/posts/energy-speech-at-athens-propeller-club.html",
+            "/posts/significance-of-electricity.html",
+            "/posts/nuclear-power-and-bremerton.html",
+        ],
+        "Environment": [
+            "/posts/environmental-perspective.html",
+        ],
+        "Education": [
+            "/posts/the-purpose-of-education.html",
+            "/posts/what-are-schools-for.html",
+            "/posts/nationsal-scholastic-standard.html",
+            "/posts/freedom-and-the-knowledge-gap.html",
+            "/posts/education-and-patriotism.html",
+            "/posts/fact-and-fiction-in-american-education.html",
+            "/posts/meaning-of-a-university.html",
+            "/posts/intellect-in-a-democracy.html",
+            "/posts/in-defense-of-truth.html",
+            "/posts/americas-goals.html",
+            "/posts/the-talented-mind.html",
+            "/posts/rickover-and-education.html",
+            "/posts/role-of-the-critic.html",
+            "/posts/democracy-and-competence.html",
+        ],
+        "Engineering": [
+            "/posts/the-role-of-engineering-in-the-navy.html",
+            "/posts/paper-reactor-memo.html",
+        ],
+        "Accountability": [
+            "/posts/personal-accountability-in-financial-management.html",
+            "/posts/accounting-practices-do-they-protect-the-public.html",
+            "/posts/who-protects-the-public.html",
+            "/posts/illusions-cost-too-much.html",
+        ],
+        "Technology": [
+            "/posts/humanistic-technology.html",
+            "/posts/technology-and-the-citizen.html",
+            "/posts/significance-of-electricity.html",
+            "/posts/our-naval-revolution.html",
+        ],
+        "Law": [
+            "/posts/lawyers-versus-society.html",
+            "/posts/liberty-science-and-law.html",
+        ],
+        "Work": [
+            "/posts/business-and-freedom.html",
+            "/posts/role-of-professional-man.html",
+        ],
+    }
+
+    def __init__(self, verbose: bool = False):
+        self.verbose = verbose
+        self.client = httpx.Client(
+            headers=self.HEADERS,
+            follow_redirects=True,
+            timeout=30.0,
+        )
+
+    def _log(self, msg: str):
+        if self.verbose:
+            print(f"  [rickover] {msg}")
+
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        retry=retry_if_exception_type((httpx.HTTPStatusError, httpx.ConnectError, httpx.ReadTimeout)),
+    )
+    def _fetch(self, url: str) -> httpx.Response:
+        resp = self.client.get(url)
+        resp.raise_for_status()
+        return resp
+
+    def _safe_fetch(self, url: str) -> Optional[httpx.Response]:
+        try:
+            return self._fetch(url)
+        except Exception as e:
+            self._log(f"Failed to fetch {url}: {e}")
+            return None
+
+    def extract(self) -> List[ExtractedPost]:
+        """Extract all speeches, tagged by theme."""
+        import time
+
+        # Build reverse mapping: URL path -> list of themes
+        url_themes: dict = {}
+        for theme, paths in self.THEME_URLS.items():
+            for path in paths:
+                url_themes.setdefault(path, []).append(theme)
+
+        unique_paths = list(url_themes.keys())
+        self._log(f"{len(self.THEME_URLS)} themes, {len(unique_paths)} unique URLs")
+
+        posts = []
+        for i, path in enumerate(unique_paths):
+            url = f"{self.BASE_URL}{path}"
+            self._log(f"Fetching {i+1}/{len(unique_paths)}: {path}")
+
+            resp = self._safe_fetch(url)
+            if not resp:
+                continue
+
+            post = self._extract_speech(url, resp.text)
+            if post:
+                post.tags = url_themes[path]
+                posts.append(post)
+
+            time.sleep(0.5)
+
+        # Sort by date (oldest first), then URL
+        posts.sort(key=lambda p: (p.published_at or '9999', p.url))
+        self._log(f"Extracted {len(posts)} speeches")
+        return posts
+
+    def _extract_speech(self, url: str, html: str) -> Optional[ExtractedPost]:
+        """Extract speech content from a rickovercorpus.org page."""
+        try:
+            soup = BeautifulSoup(html, 'lxml')
+
+            # Title from h1 or <title>
+            title = None
+            h1 = soup.find('h1')
+            if h1:
+                title = h1.get_text(strip=True)
+            if not title:
+                title_tag = soup.find('title')
+                if title_tag:
+                    title = title_tag.get_text(strip=True).split('|')[0].strip()
+            if not title:
+                return None
+
+            # Date from meta tags
+            published_at = None
+            for prop in ('article:published_time', 'datePublished', 'date',
+                         'dc.date.modified', 'dcterms.modified'):
+                meta = soup.find('meta', attrs={'property': prop}) or \
+                       soup.find('meta', attrs={'name': prop})
+                if meta and meta.get('content'):
+                    published_at = _parse_date(meta['content'])
+                    if published_at:
+                        break
+
+            # Try <time> tag
+            if not published_at:
+                time_tag = soup.find('time', attrs={'datetime': True})
+                if time_tag:
+                    published_at = _parse_date(time_tag['datetime'])
+
+            # Content via readability
+            doc = Document(html, url=url)
+            content_html = doc.summary()
+
+            if not content_html or len(content_html) < 100:
+                return None
+
+            # Slug from URL path
+            path = urlparse(url).path.strip('/')
+            slug = path.split('/')[-1].replace('.html', '') if path else _slugify(title)
+
+            return ExtractedPost(
+                title=title,
+                url=url,
+                content_html=content_html,
+                slug=slug,
+                published_at=published_at,
+            )
+        except Exception as e:
+            self._log(f"Failed to extract {url}: {e}")
+            return None
+
+
 class CuratedExtractor:
     """Extract articles from a curated list of URLs.
 
