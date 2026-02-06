@@ -36,6 +36,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Ensure auth user exists before generating magic link
+    if (!subscriber) {
+      await supabase.auth.admin.createUser({
+        email: normalEmail,
+        email_confirm: true,
+      })
+    }
+
     // Generate magic link via Supabase admin API
     const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
       type: 'magiclink',
