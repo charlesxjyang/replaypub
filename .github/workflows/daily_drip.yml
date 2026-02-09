@@ -34,3 +34,18 @@ jobs:
 
       - name: Send drip emails
         run: python backstack.py send -v
+
+  rerun-on-failure:
+    needs: [send-emails]
+    if: failure() && fromJSON(github.run_attempt) < 3
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.actions.reRunWorkflowFailedJobs({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.runId
+            });
+
