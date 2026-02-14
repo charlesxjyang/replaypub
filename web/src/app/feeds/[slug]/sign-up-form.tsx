@@ -20,7 +20,7 @@ export default function SignUpForm({
   const [frequency, setFrequency] = useState(7)
   const [preferredDay, setPreferredDay] = useState<number | null>(null)
   const [preferredHour, setPreferredHour] = useState(9)
-  const [timezone, setTimezone] = useState('UTC')
+  const [timezone, setTimezone] = useState('America/New_York')
   const [status, setStatus] = useState<'idle' | 'loading' | 'sent' | 'error' | 'already_subscribed' | 'subscribed' | 'limit_reached'>('idle')
   const [user, setUser] = useState<User | null>(null)
   const [checkingAuth, setCheckingAuth] = useState(true)
@@ -110,6 +110,16 @@ export default function SignUpForm({
       // Email is non-critical, don't fail the subscription
       console.error('Failed to send confirmation email')
     }
+
+    // Notify admin (fire-and-forget)
+    fetch('/api/notify-admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'subscription',
+        details: { email: user.email, feedName, frequency: `every ${frequency} days` },
+      }),
+    }).catch(() => {})
 
     setStatus('subscribed')
   }

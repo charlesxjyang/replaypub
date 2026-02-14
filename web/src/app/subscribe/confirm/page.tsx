@@ -12,7 +12,7 @@ function ConfirmContent() {
   const preferredDayParam = searchParams.get('preferred_day')
   const preferredDay = preferredDayParam !== null ? parseInt(preferredDayParam, 10) : null
   const preferredHour = parseInt(searchParams.get('preferred_hour') ?? '9', 10)
-  const timezone = searchParams.get('timezone') ?? 'UTC'
+  const timezone = searchParams.get('timezone') ?? 'America/New_York'
   const [status, setStatus] = useState<'loading' | 'done' | 'error' | 'already_subscribed' | 'limit_reached'>('loading')
   const [errorDetail, setErrorDetail] = useState<string>('')
   const [userEmail, setUserEmail] = useState<string | null>(null)
@@ -87,6 +87,19 @@ function ConfirmContent() {
         }
         setErrorDetail(`Insert failed: ${error.message} (code: ${error.code})`)
       }
+
+      if (!error) {
+        // Notify admin (fire-and-forget)
+        fetch('/api/notify-admin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'subscription',
+            details: { email: user.email, feedId, frequency: `every ${frequency} days`, timezone },
+          }),
+        }).catch(() => {})
+      }
+
       setStatus(error ? 'error' : 'done')
     }
 

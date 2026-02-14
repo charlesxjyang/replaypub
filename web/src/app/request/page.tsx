@@ -37,6 +37,16 @@ export default function RequestPage() {
       return
     }
 
+    // Notify admin (fire-and-forget)
+    fetch('/api/notify-admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'request',
+        details: { url, voterEmail: user?.email ?? 'anonymous' },
+      }),
+    }).catch(() => {})
+
     setStatus('done')
     setUrl('')
 

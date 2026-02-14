@@ -26,7 +26,7 @@ export default function EmbedForm({
   const [email, setEmail] = useState('')
   const [frequency, setFrequency] = useState(7)
   const [status, setStatus] = useState<'idle' | 'loading' | 'sent' | 'error' | 'already_subscribed'>('idle')
-  const [timezone, setTimezone] = useState('UTC')
+  const [timezone, setTimezone] = useState('America/New_York')
 
   useEffect(() => {
     try {

@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
       feed_id,
       blog_id,
       frequency: String(frequency || 7),
-      timezone: timezone || 'UTC',
+      timezone: timezone || 'America/New_York',
     })
     const redirectTo = `${appUrl}/api/embed-confirm?${confirmParams.toString()}`
 

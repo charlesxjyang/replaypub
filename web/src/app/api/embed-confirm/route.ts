@@ -1,6 +1,7 @@
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { createClient as createSSRClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { sendAdminNotification } from '@/lib/admin-notify'
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
@@ -8,7 +9,7 @@ export async function GET(request: NextRequest) {
   const feedId = searchParams.get('feed_id')
   const blogId = searchParams.get('blog_id')
   const frequency = parseInt(searchParams.get('frequency') ?? '7', 10)
-  const timezone = searchParams.get('timezone') ?? 'UTC'
+  const timezone = searchParams.get('timezone') ?? 'America/New_York'
 
   if (!feedId || !blogId) {
     return NextResponse.redirect(`${origin}/?error=invalid_link`)
@@ -79,12 +80,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${origin}/?error=subscription_failed`)
     }
 
-    // Get feed name for the success page
+    // Get feed name for the success page and admin notification
     const { data: feed } = await supabase
       .from('feeds')
       .select('name')
       .eq('id', feedId)
       .single()
+
+    // Notify admin (fire-and-forget)
+    sendAdminNotification('subscription', {
+      email: user.email!,
+      feedName: feed?.name ?? feedId,
+      frequency: `every ${frequency} days`,
+      source: 'embed',
+    }).catch(() => {})
 
     const feedName = feed?.name ? encodeURIComponent(feed.name) : ''
     return NextResponse.redirect(`${origin}/embed/success?feed=${feedName}`)
