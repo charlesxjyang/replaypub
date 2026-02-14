@@ -93,7 +93,7 @@ CREATE TABLE subscriptions (
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     
-    UNIQUE(subscriber_id, blog_id)
+    UNIQUE(subscriber_id, feed_id)
 );
 
 CREATE INDEX idx_subscriptions_next_send ON subscriptions(next_send_at) 

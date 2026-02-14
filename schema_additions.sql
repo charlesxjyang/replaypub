@@ -104,7 +104,7 @@ CREATE TRIGGER on_auth_user_created
 ALTER TABLE subscriptions
   ADD COLUMN IF NOT EXISTS preferred_day SMALLINT CHECK (preferred_day BETWEEN 0 AND 6),
   ADD COLUMN IF NOT EXISTS preferred_hour SMALLINT DEFAULT 9 CHECK (preferred_hour BETWEEN 0 AND 23),
-  ADD COLUMN IF NOT EXISTS timezone TEXT DEFAULT 'UTC';
+  ADD COLUMN IF NOT EXISTS timezone TEXT DEFAULT 'America/New_York';
 
 -- Update mark_subscription_sent to respect scheduling preferences
 CREATE OR REPLACE FUNCTION mark_subscription_sent(
@@ -125,7 +125,7 @@ DECLARE
 BEGIN
     -- Get subscription details
     SELECT s.frequency_days, s.current_post_index, b.post_count,
-           s.preferred_day, COALESCE(s.preferred_hour, 9), COALESCE(s.timezone, 'UTC')
+           s.preferred_day, COALESCE(s.preferred_hour, 9), COALESCE(s.timezone, 'America/New_York')
     INTO v_frequency_days, v_current_index, v_total_posts,
          v_preferred_day, v_preferred_hour, v_tz
     FROM subscriptions s
