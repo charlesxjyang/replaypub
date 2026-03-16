@@ -2,6 +2,7 @@ import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { createClient as createSSRClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { sendAdminNotification } from '@/lib/admin-notify'
+import { computeNextSend } from '@/lib/computeNextSend'
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
@@ -68,11 +69,7 @@ export async function GET(request: NextRequest) {
       preferred_hour: 9,
       timezone,
       current_post_index: 0,
-      next_send_at: (() => {
-        const next = new Date(Date.now() + frequency * 86400000)
-        const localStr = next.toLocaleDateString('en-CA', { timeZone: timezone })
-        return new Date(`${localStr}T09:00:00`).toISOString()
-      })(),
+      next_send_at: computeNextSend(frequency, null, 9, timezone),
       is_active: true,
     })
 
