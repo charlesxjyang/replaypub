@@ -68,7 +68,11 @@ export async function GET(request: NextRequest) {
       preferred_hour: 9,
       timezone,
       current_post_index: 0,
-      next_send_at: new Date().toISOString(),
+      next_send_at: (() => {
+        const next = new Date(Date.now() + frequency * 86400000)
+        const localStr = next.toLocaleDateString('en-CA', { timeZone: timezone })
+        return new Date(`${localStr}T09:00:00`).toISOString()
+      })(),
       is_active: true,
     })
 

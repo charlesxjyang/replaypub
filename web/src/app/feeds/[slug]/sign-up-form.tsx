@@ -6,6 +6,7 @@ import FrequencyPicker from '@/components/FrequencyPicker'
 import DayPicker from '@/components/DayPicker'
 import TimePicker from '@/components/TimePicker'
 import type { User } from '@supabase/supabase-js'
+import { computeNextSend } from '@/lib/computeNextSend'
 
 export default function SignUpForm({
   feedId,
@@ -64,12 +65,13 @@ export default function SignUpForm({
     if (!user) return
     setStatus('loading')
 
-    // Check subscription limit (max 3 active feeds)
+    // Check subscription limit (max 3 active feeds, completed don't count)
     const { count } = await supabase
       .from('subscriptions')
       .select('*', { count: 'exact', head: true })
       .eq('subscriber_id', user.id)
       .eq('is_active', true)
+      .eq('is_completed', false)
 
     if (count !== null && count >= 3) {
       setStatus('limit_reached')
@@ -85,7 +87,7 @@ export default function SignUpForm({
       preferred_hour: preferredHour,
       timezone,
       current_post_index: 0,
-      next_send_at: new Date().toISOString(),
+      next_send_at: computeNextSend(frequency, preferredDay, preferredHour, timezone),
       is_active: true,
     })
 

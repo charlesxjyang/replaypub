@@ -7,6 +7,7 @@ import ProgressBar from './ProgressBar'
 import FrequencyPicker from './FrequencyPicker'
 import DayPicker from './DayPicker'
 import TimePicker from './TimePicker'
+import { computeNextSend } from '@/lib/computeNextSend'
 
 export default function SubscriptionCard({
   subscription,
@@ -28,26 +29,6 @@ export default function SubscriptionCard({
       .eq('id', subscription.id)
     setLoading(false)
     onUpdate()
-  }
-
-  function computeNextSend(freqDays: number, day: number | null, hour: number, tz: string): string {
-    // Calculate next send in user's local time, then convert to ISO
-    const now = new Date()
-    const next = new Date(now.getTime() + freqDays * 86400000)
-    // Create a date string in the user's timezone and snap to preferred hour
-    const localStr = next.toLocaleDateString('en-CA', { timeZone: tz }) // YYYY-MM-DD
-    const snapped = new Date(`${localStr}T${String(hour).padStart(2, '0')}:00:00`)
-
-    // If preferred_day set and frequency >= 7, advance to that weekday
-    if (day !== null && freqDays >= 7) {
-      while (snapped.getDay() !== day) {
-        snapped.setDate(snapped.getDate() + 1)
-      }
-    }
-
-    // Convert local time in tz to UTC by using the timezone offset
-    // We'll use a simple approach: format as ISO and let the DB handle it
-    return snapped.toISOString()
   }
 
   const isPaused = !subscription.is_active

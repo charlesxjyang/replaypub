@@ -3,6 +3,7 @@
 import { useSearchParams } from 'next/navigation'
 import { useEffect, useState, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { computeNextSend } from '@/lib/computeNextSend'
 
 function ConfirmContent() {
   const searchParams = useSearchParams()
@@ -52,12 +53,13 @@ function ConfirmContent() {
         return
       }
 
-      // Check subscription limit (max 3 active feeds)
+      // Check subscription limit (max 3 active feeds, completed don't count)
       const { count } = await supabase
         .from('subscriptions')
         .select('*', { count: 'exact', head: true })
         .eq('subscriber_id', user.id)
         .eq('is_active', true)
+        .eq('is_completed', false)
 
       if (count !== null && count >= 3) {
         setStatus('limit_reached')
@@ -74,7 +76,7 @@ function ConfirmContent() {
         preferred_hour: preferredHour,
         timezone,
         current_post_index: 0,
-        next_send_at: new Date().toISOString(),
+        next_send_at: computeNextSend(frequency, preferredDay, preferredHour, timezone),
         is_active: true,
       })
 

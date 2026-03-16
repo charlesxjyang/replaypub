@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import FrequencyPicker from '@/components/FrequencyPicker'
+import { computeNextSend } from '@/lib/computeNextSend'
 
 export default function SubscribeButton({
   blogId,
@@ -50,7 +51,7 @@ export default function SubscribeButton({
       blog_id: blogId,
       frequency_days: frequency,
       current_post_index: 0,
-      next_send_at: new Date().toISOString(),
+      next_send_at: computeNextSend(frequency, null, 9, Intl.DateTimeFormat().resolvedOptions().timeZone),
       is_active: true,
     })
 
