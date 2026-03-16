@@ -101,18 +101,6 @@ export default function SignUpForm({
       return
     }
 
-    // Send confirmation email
-    try {
-      await fetch('/api/send-confirmation', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: user.email, feedName }),
-      })
-    } catch {
-      // Email is non-critical, don't fail the subscription
-      console.error('Failed to send confirmation email')
-    }
-
     // Notify admin (fire-and-forget)
     fetch('/api/notify-admin', {
       method: 'POST',
