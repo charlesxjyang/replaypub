@@ -42,6 +42,7 @@ jobs:
     steps:
       - uses: actions/github-script@v7
         with:
+          github-token: ${{ secrets.WORKFLOW_PAT }}
           script: |
             await github.rest.actions.reRunWorkflowFailedJobs({
               owner: context.repo.owner,
