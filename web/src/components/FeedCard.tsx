@@ -7,7 +7,6 @@ export const AWAITING_PERMISSION_AUTHORS = [
   'Patrick McKenzie',
   'Venkatesh Rao',
   'Dan Wang',
-  'L.M. Sacasas',
 ]
 
 export default function FeedCard({
