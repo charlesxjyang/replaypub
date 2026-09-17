@@ -44,3 +44,18 @@ patio11.json
 pg-essays.json
 benkuhn.json
 *.epub
+
+# Book sources and OCR intermediates. The extract_*.py script plus the
+# *_clean.json it produces are the tracked artifacts; these are the 4-23MB
+# inputs and scratch output behind them.
+*.pdf
+*_ocr_output/
+*_ocr_test/
+*_ocr_v2/
+polanyi_pdfs/
+polanyi_cleaned/
+weaver_cleaned/
+weaver_full_clean.md
+weaver_ocr_v2.md
+weaver_pymupdf.md
+weaver_raw_extract.md

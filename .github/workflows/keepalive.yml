@@ -1,0 +1,37 @@
+name: Keepalive
+
+# GitHub disables scheduled workflows in a public repo after 60 days with no
+# repository activity. That silently stopped Daily Drip Emails on 2026-09-02,
+# 60 days after the previous commit, and no drip mail went out for two weeks.
+#
+# This job pushes an empty commit once a month, so the inactivity timer is
+# reset roughly twice as often as it needs to be, and re-enables the drip
+# workflow in case it was disabled for some other reason.
+
+on:
+  schedule:
+    - cron: '17 9 1 * *'  # 09:17 UTC on the 1st of each month
+  workflow_dispatch: {}
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+
+    steps:
+      # WORKFLOW_PAT rather than GITHUB_TOKEN: a push attributed to
+      # github-actions[bot] is not reliably counted as repository activity.
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.WORKFLOW_PAT }}
+
+      - name: Push an empty commit
+        run: |
+          git config user.name 'Charles Yang'
+          git config user.email 'charlesxjyang@gmail.com'
+          git commit --allow-empty -m 'chore: keepalive, reset scheduled-workflow inactivity timer'
+          git push
+
+      - name: Re-enable the drip workflow if it was disabled
+        env:
+          GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
+        run: gh workflow enable daily_drip.yml --repo "$GITHUB_REPOSITORY"
