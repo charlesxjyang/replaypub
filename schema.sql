@@ -224,7 +224,10 @@ CREATE POLICY "Users can update own subscriptions" ON subscriptions
 CREATE POLICY "Users can delete own subscriptions" ON subscriptions
     FOR DELETE USING (auth.uid() = subscriber_id);
 
--- Blogs and posts are public read
+-- Enable RLS on public content tables (read-only via anon key, writes require service key)
+ALTER TABLE blogs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE posts ENABLE ROW LEVEL SECURITY;
+
 CREATE POLICY "Blogs are publicly readable" ON blogs
     FOR SELECT USING (true);
 

@@ -52,7 +52,7 @@ export default async function BlogDetail({
 
   const { data: posts } = await supabase
     .from('posts')
-    .select('id, title, excerpt, post_index, reading_time_minutes, tags')
+    .select('id, title, slug, excerpt, post_index, reading_time_minutes, tags, original_url')
     .eq('blog_id', blog.id)
     .order('post_index')
 
@@ -99,7 +99,12 @@ export default async function BlogDetail({
 
       {/* All posts with tag filter */}
       {posts && posts.length > 0 && (
-        <PostList posts={posts as Post[]} tags={allTags} />
+        <PostList
+          posts={posts as Post[]}
+          tags={allTags}
+          blogSlug={slug}
+          hasLiveOriginalUrls={blog.has_live_original_urls}
+        />
       )}
     </div>
     </>

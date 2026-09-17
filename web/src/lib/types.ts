@@ -8,6 +8,7 @@ export interface Blog {
   url: string
   post_count: number
   is_active: boolean
+  has_live_original_urls: boolean
   created_at: string
   updated_at: string
 }

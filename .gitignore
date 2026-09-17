@@ -45,6 +45,9 @@ pg-essays.json
 benkuhn.json
 *.epub
 
+# Supabase CLI local state (caches the project ref and pooler URL)
+supabase/.temp/
+
 # Book sources and OCR intermediates. The extract_*.py script plus the
 # *_clean.json it produces are the tracked artifacts; these are the 4-23MB
 # inputs and scratch output behind them.

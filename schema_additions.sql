@@ -2,6 +2,14 @@
 -- Run this in Supabase SQL editor AFTER schema.sql
 
 -- ============================================
+-- SECURITY: Enable RLS on feeds table
+-- ============================================
+ALTER TABLE feeds ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Feeds are publicly readable" ON feeds
+    FOR SELECT USING (true);
+
+-- ============================================
 -- BLOG REQUESTS: User-submitted blog suggestions
 -- ============================================
 
@@ -105,6 +113,19 @@ ALTER TABLE subscriptions
   ADD COLUMN IF NOT EXISTS preferred_day SMALLINT CHECK (preferred_day BETWEEN 0 AND 6),
   ADD COLUMN IF NOT EXISTS preferred_hour SMALLINT DEFAULT 9 CHECK (preferred_hour BETWEEN 0 AND 23),
   ADD COLUMN IF NOT EXISTS timezone TEXT DEFAULT 'America/New_York';
+
+-- ============================================
+-- BLOG: has_live_original_urls flag
+-- ============================================
+-- false when per-post original_url values point to a dead/missing site
+-- (e.g. The Frailest Thing). The blog detail page uses this to decide
+-- whether to link post titles to the original URL or to the local
+-- /blogs/<slug>/posts/<post_slug> page.
+
+ALTER TABLE blogs
+  ADD COLUMN IF NOT EXISTS has_live_original_urls BOOLEAN NOT NULL DEFAULT true;
+
+UPDATE blogs SET has_live_original_urls = false WHERE slug = 'lm-sacasas';
 
 -- Update mark_subscription_sent to respect scheduling preferences
 CREATE OR REPLACE FUNCTION mark_subscription_sent(

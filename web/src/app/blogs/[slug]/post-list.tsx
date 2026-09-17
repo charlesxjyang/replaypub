@@ -1,14 +1,19 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import type { Post } from '@/lib/types'
 
 export default function PostList({
   posts,
   tags,
+  blogSlug,
+  hasLiveOriginalUrls,
 }: {
   posts: Post[]
   tags: string[]
+  blogSlug: string
+  hasLiveOriginalUrls: boolean
 }) {
   const [activeTag, setActiveTag] = useState<string | null>(null)
 
@@ -58,38 +63,66 @@ export default function PostList({
 
       {/* Post list */}
       <div className="space-y-3">
-        {filtered.map((post) => (
-          <div
-            key={post.id}
-            className="border border-gray-200 rounded-lg p-4"
-          >
-            <div className="flex items-baseline justify-between gap-2">
-              <h3 className="font-medium text-gray-900">{post.title}</h3>
-              {post.reading_time_minutes && (
-                <span className="text-xs text-gray-400 whitespace-nowrap">
-                  {post.reading_time_minutes} min
-                </span>
-              )}
-            </div>
-            {post.excerpt && (
-              <p className="text-sm text-gray-500 mt-1 line-clamp-2">
-                {post.excerpt}
-              </p>
-            )}
-            {post.tags && post.tags.length > 0 && (
-              <div className="flex gap-1.5 mt-2">
-                {post.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="text-xs text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded"
-                  >
-                    {tag}
+        {filtered.map((post) => {
+          const useOriginal = hasLiveOriginalUrls && !!post.original_url
+          const href = useOriginal
+            ? `${post.original_url}${post.original_url.includes('?') ? '&' : '?'}utm_source=replay`
+            : `/blogs/${blogSlug}/posts/${post.slug}`
+
+          const inner = (
+            <>
+              <div className="flex items-baseline justify-between gap-2">
+                <h3 className="font-medium text-gray-900">
+                  {post.title}
+                  {useOriginal && (
+                    <span className="text-gray-300 ml-1.5 text-sm">↗</span>
+                  )}
+                </h3>
+                {post.reading_time_minutes && (
+                  <span className="text-xs text-gray-400 whitespace-nowrap">
+                    {post.reading_time_minutes} min
                   </span>
-                ))}
+                )}
               </div>
-            )}
-          </div>
-        ))}
+              {post.excerpt && (
+                <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+                  {post.excerpt}
+                </p>
+              )}
+              {post.tags && post.tags.length > 0 && (
+                <div className="flex gap-1.5 mt-2">
+                  {post.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="text-xs text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </>
+          )
+
+          const className =
+            'block border border-gray-200 rounded-lg p-4 hover:border-gray-300 hover:shadow-sm transition-all'
+
+          return useOriginal ? (
+            <a
+              key={post.id}
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={className}
+            >
+              {inner}
+            </a>
+          ) : (
+            <Link key={post.id} href={href} className={className}>
+              {inner}
+            </Link>
+          )
+        })}
       </div>
     </section>
   )
