@@ -67,6 +67,6 @@ weaver_raw_extract.md
 buber_ocr_*.json
 buber_audit.txt
 
-# Lacy OCR intermediates (extract_lacy.py rebuilds them from the PDF)
+# Lacy OCR intermediates (superseded by the lacy_pages/ transcription)
 lacy_ocr_*.json
 lacy_audit.txt

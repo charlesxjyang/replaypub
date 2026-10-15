@@ -1,0 +1,27 @@
+@@CONTforeign-born.
+
+@@H2 Education
+The White House Office staff members have been extremely well educated since 1939. Their educational level was generally comparable to that of other federal executives and somewhat higher than that of business executives.
+
+The educational level has generally improved since the Roosevelt Administration when nearly half of the staff did not have a college degree. Although there was a slight decline in percentage of college degrees in the Eisenhower Administration, it is rather difficult to compare percentage figures for the Eisenhower staff members to those of the other Presidents because of the significantly larger number of respondents for the Eisenhower staff. For the entire period, about three out of four staff members had a college degree.
+
+@@TABLE_IV
+Table IV
+Education, White House Office Professional Staff, 1939-1967
+Educational Level|FDR[1]|HST[2]|DDE[3]|JFK[4]|LBJ[5]
+No college degree*|6 (42.9%)|2 (10%)|14 (16.3%)|2 (7.1%)|2 (6.9%)
+Bachelor's degree*|7 (50%)|16 (80%)|63 (73.3%)|25 (89.3%)|25 (86.2%)
+Advanced degrees|5 (35.7%)|13 (65%)|47 (54.6%)|18 (64.3%)|17 (58.6%)
+- Masters|1 (7.1%)|5 (25%)|18 (21%)|5 (17.9%)|4 (13.8%)
+- LL.B|3 (21.4%)|8 (40%)|25 (29.1%)|12 (42.6%)|10 (34.5%)
+- Ph.D.|1 (7.1%)|1 (5%)|9 (10.5%)|4 (14.2%)|2 (6.9%)
+- other|1 (7.1%)|2 (10%)|5 (5.8%)|2 (7.1%)|2 (6.9%)
+*The total of the "No College Degree" and "Bachelor's Degree" columns may not add up to 100% because some staff members took advanced degrees in lieu of a Bachelor's Degree.
+1 Data available for 14 of 16 staff members.
+2 Data available for 20 of 22 staff members.
+3 Data available for 86 of 86 staff members.
+4 Data available for 28 of 28 staff members.
+5 Data available for 29 of 33 staff members.
+@@ENDTABLE
+
+More than half had advanced degrees with the majority of these being in the LL.B. category. The Kennedy staff, according to the data in Table IV, was the best educated staff of the period under study. Nine out of ten Kennedy staffers had bachelor's degrees, two-thirds of them had advanced degrees, and one out of seven had a Ph.D.

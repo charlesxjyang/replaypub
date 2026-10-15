@@ -1,0 +1,25 @@
+@@H1 A Biographical Profile of the White House Professional Staff, 1939-1967
+Since the reorganization of the Executive Office of the President in 1939, 169 men have served at the professional staff level in the White House Office. The typical staff member during this twenty-eight year period since the reorganization was in his mid-forties, white (only three Negroes served), male (no women held professional positions during this period although several personal secretaries were quite influential), from the Eastern half of the United States, with prior experience in the federal government service, and holder of at least one Ivy League degree.
+
+@@H2 Age
+The typical appointee to the White House Office staff since 1939 has tended to be several years younger than other executives in top positions in the federal government, and slightly older than business executives on their first senior appointment in the business world.
+
+As the data in Table II indicate, the Roosevelt staff was five years older on the average than the youngest staff, the Truman staff, while the average age of the Kennedy staff was only several months older than the Truman staff and the average age of the Eisenhower and Johnson staffs was exactly one year older than the Truman staff.
+
+@@TABLE_II
+Table II
+Age Distribution and Average Age at Date of Appointment, White House Office Professional Staff, 1939-1967
+Age|FDR[1]|HST[2]|DDE[3]|JFK[4]|LBJ[5]
+20-29|0|1|4|0|1
+30-39|2|6|27|10|4
+40-49|4|7|25|12|18
+50-59|7|4|22|1|4
+60-69|1|1|7|5|2
+Over 69|0|0|1|0|0
+Average Age|49.6|44.6|45.6|44.9|45.6
+1 Data available for 14 of 16 staff members
+2 Data available for 19 of 22 staff members
+3 Data available for 86 of 86 staff members
+4 Data available for 28 of 28 staff members
+5 Data available for 29 of 33 staff members
+@@ENDTABLE
