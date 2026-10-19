@@ -12,11 +12,92 @@ Usage:
 
 import os
 import sys
+from datetime import datetime, timezone
+
 import click
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
+
+
+# --- upload helpers -------------------------------------------------------
+# Rows are compared field by field before writing, so re-running an upload
+# only rewrites posts whose content actually changed. Every needless UPDATE
+# leaves a dead tuple behind, and with large content_html values those bloat
+# the table far past the size of the live data.
+
+_POST_TEXT_FIELDS = ('title', 'slug', 'content_html', 'content_text',
+                     'excerpt', 'original_url')
+_POST_NUM_FIELDS = ('post_index', 'word_count', 'reading_time_minutes')
+_BLOG_TEXT_FIELDS = ('slug', 'name', 'url', 'author', 'author_email')
+
+
+def _norm_text(value):
+    """Treat NULL and the empty string as the same stored value."""
+    return (value or '').strip()
+
+
+def _norm_num(value):
+    if value is None or value == '':
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        pass
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return value
+
+
+def _norm_timestamp(value):
+    """Compare timestamps as instants, so '...Z' and '+00:00' match."""
+    if not value:
+        return None
+    if not isinstance(value, str):
+        return value
+    text = value.strip()
+    if not text:
+        return None
+    iso = text[:-1] + '+00:00' if text[-1] in 'Zz' else text
+    try:
+        parsed = datetime.fromisoformat(iso)
+    except ValueError:
+        return text
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc).isoformat()
+
+
+def _norm_tags(value):
+    return list(value or [])
+
+
+def post_changed(incoming, existing):
+    """True if `incoming` differs from the stored row, or is new."""
+    if not existing:
+        return True
+    for field in _POST_TEXT_FIELDS:
+        if _norm_text(incoming.get(field)) != _norm_text(existing.get(field)):
+            return True
+    for field in _POST_NUM_FIELDS:
+        if _norm_num(incoming.get(field)) != _norm_num(existing.get(field)):
+            return True
+    if _norm_timestamp(incoming.get('published_at')) != _norm_timestamp(existing.get('published_at')):
+        return True
+    return _norm_tags(incoming.get('tags')) != _norm_tags(existing.get('tags'))
+
+
+def blog_changed(incoming, existing):
+    """True if the blog row needs rewriting. Only compares written fields,
+    so columns this command never sets (description) are left alone."""
+    if not existing:
+        return True
+    for field in _BLOG_TEXT_FIELDS:
+        if _norm_text(incoming.get(field)) != _norm_text(existing.get(field)):
+            return True
+    return _norm_num(incoming.get('post_count')) != _norm_num(existing.get('post_count'))
 
 
 @click.group()
@@ -239,11 +320,11 @@ def clean(input_file, output, base_url, cdn_url, verbose):
 @click.option('--url', '-u', required=True, help='Original blog URL')
 @click.option('--author', '-a', help='Author name')
 @click.option('--author-email', help='Author email')
+@click.option('--force', is_flag=True, help='Rewrite every post, even unchanged ones')
 @click.option('--dry-run', is_flag=True)
-def upload(posts_file, slug, name, url, author, author_email, dry_run):
+def upload(posts_file, slug, name, url, author, author_email, force, dry_run):
     """Upload posts to Supabase."""
     from supabase import create_client
-    from datetime import datetime
     import json
     
     with open(posts_file) as f:
@@ -262,7 +343,7 @@ def upload(posts_file, slug, name, url, author, author_email, dry_run):
         os.environ['SUPABASE_SERVICE_KEY']
     )
     
-    # Upsert blog
+    # Upsert the blog row, but only when a field we write has changed.
     blog_data = {
         'slug': slug,
         'name': name,
@@ -270,15 +351,41 @@ def upload(posts_file, slug, name, url, author, author_email, dry_run):
         'author': author,
         'author_email': author_email,
         'post_count': len(posts),
-        'updated_at': datetime.utcnow().isoformat(),
     }
-    
-    result = supabase.table('blogs').upsert(blog_data, on_conflict='slug').execute()
-    blog_id = result.data[0]['id']
-    
+
+    found = supabase.table('blogs').select('*').eq('slug', slug).limit(1).execute().data
+    existing_blog = found[0] if found else None
+
+    if force or blog_changed(blog_data, existing_blog):
+        blog_data['updated_at'] = datetime.now(timezone.utc).isoformat()
+        result = supabase.table('blogs').upsert(blog_data, on_conflict='slug').execute()
+        blog_id = result.data[0]['id']
+    else:
+        blog_id = existing_blog['id']
+
     click.echo(f"Blog ID: {blog_id}")
-    
-    # Upload posts
+
+    # Pull the stored posts so unchanged rows can be left untouched.
+    existing_by_index = {}
+    columns = ('post_index,title,slug,content_html,content_text,excerpt,'
+               'original_url,published_at,word_count,reading_time_minutes,tags')
+    page_size = 1000
+    offset = 0
+    while True:
+        page = (supabase.table('posts')
+                .select(columns)
+                .eq('blog_id', blog_id)
+                .order('post_index')
+                .range(offset, offset + page_size - 1)
+                .execute().data) or []
+        for row in page:
+            existing_by_index[row['post_index']] = row
+        if len(page) < page_size:
+            break
+        offset += page_size
+
+    to_write = []
+    unchanged = 0
     for post in posts:
         post_data = {
             'blog_id': blog_id,
@@ -294,10 +401,22 @@ def upload(posts_file, slug, name, url, author, author_email, dry_run):
             'reading_time_minutes': post.get('reading_time_minutes'),
             'tags': post.get('tags', []),
         }
-        
-        supabase.table('posts').upsert(post_data, on_conflict='blog_id,post_index').execute()
-    
-    click.echo(f"Uploaded {len(posts)} posts")
+
+        if force or post_changed(post_data, existing_by_index.get(post_data['post_index'])):
+            to_write.append(post_data)
+        else:
+            unchanged += 1
+
+    created = sum(1 for p in to_write if p['post_index'] not in existing_by_index)
+    updated = len(to_write) - created
+
+    batch_size = 50
+    for start in range(0, len(to_write), batch_size):
+        supabase.table('posts').upsert(
+            to_write[start:start + batch_size], on_conflict='blog_id,post_index'
+        ).execute()
+
+    click.echo(f"Posts: {created} new, {updated} updated, {unchanged} unchanged")
 
 
 @cli.command()
