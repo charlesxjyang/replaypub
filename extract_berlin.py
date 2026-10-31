@@ -671,17 +671,20 @@ def esc(text):
 
 
 # ---------------------------------------------------------------- posts
-TARGET, SPLIT_OVER = 600, 800          # words per post; split a longer paragraph
+# One post per section of the essay. Only a section longer than this is divided,
+# into as few near-equal parts as will fit, so that section III (about 9,700
+# words) becomes several posts and every other section stays whole.
+MAX_POST = 3000
 SENTENCE = re.compile(r'(?<=[.!?’”])\s+(?=[‘"A-Z])')
 
 
 def split_long(text):
     """Break a paragraph too long to be a post of its own at sentence ends."""
     words = len(text.split())
-    if words <= SPLIT_OVER:
+    if words <= MAX_POST:
         return [text]
     parts, sentences = [], SENTENCE.split(text)
-    per = words / max(1, round(words / TARGET))
+    per = words / max(1, round(words / MAX_POST))
     buf = []
     for sentence in sentences:
         buf.append(sentence)
@@ -709,22 +712,18 @@ def sections():
 def build_posts():
     posts = []
     for numeral, blocks in sections():
+        total = sum(len(text.split()) for _, text in blocks)
+        parts = max(1, -(-total // MAX_POST))
+        target = total / parts
         chunks, buf, count = [], [], 0
         for kind, text in blocks:
-            words = len(text.split())
-            if buf and count + words > SPLIT_OVER:
-                chunks.append(buf)
-                buf, count = [], 0
             buf.append((kind, text))
-            count += words
-            if count >= TARGET:
+            count += len(text.split())
+            if count >= target and len(chunks) < parts - 1:
                 chunks.append(buf)
                 buf, count = [], 0
         if buf:
-            if chunks and count < TARGET * 0.4:
-                chunks[-1].extend(buf)      # a short tail reads better joined
-            else:
-                chunks.append(buf)
+            chunks.append(buf)
         for i, chunk in enumerate(chunks, start=1):
             title = f'Part {numeral}'
             slug = f'part-{numeral.lower()}'
